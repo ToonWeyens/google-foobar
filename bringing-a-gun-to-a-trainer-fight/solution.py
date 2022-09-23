@@ -1,3 +1,6 @@
+from math import ceil
+
+
 debug = True
 
 def solution(dims, yourPos, trainPos, dist):
@@ -10,16 +13,18 @@ def solution(dims, yourPos, trainPos, dist):
     dimsV = [0,dims[1]]
 
     # trainer
-    trainPosTot = virtualize(yourPos, trainPos, dimsH, dimsV, dist)
+    trainPosTot, trainDistTot = virtualize(yourPos, trainPos, dimsH, dimsV, dist)
     if debug:
         print "all virtual trainers within reach:"
-        print trainPosTot
+        for idx in range(len(trainPosTot)):
+            print idx, trainPosTot[idx], trainDistTot[idx]
     
     # you
-    yourPosTot = virtualize(yourPos, yourPos, dimsH, dimsV, dist)
+    yourPosTot, yourDistTot = virtualize(yourPos, yourPos, dimsH, dimsV, dist)
     if debug:
         print "all yourselves within reach:"
-        print yourPosTot
+        for idx in range(len(yourPosTot)):
+            print idx, yourPosTot[idx], yourDistTot[idx]
 
 def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
     # Create virtual representations of the object, by repeating indefinitely in
@@ -41,75 +46,63 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
     # create list that we can append to
     objPosTot = []
 
-    kdx = 0
-    while True: # horizontal loop
-        ldx = 0
-        nAddH = 0
+    # Append with all H translated poitions
+    nH = maxDist/dH/2+2 # will always contain the valid points, +2 just in case
+    for idH in range(nH):
+        objPosExt = [objPos[0]+2*idH*dH, objPos[1]]
+        objPosTot.append(objPosExt)
+        # if debug:
+        #     print "add", objPosExt
+        objPosExt = [objPos[0]-2*idH*dH, objPos[1]]
+        objPosTot.append(objPosExt)
+        # if debug:
+        #     print "add", objPosExt
 
-        if debug:
-            print "iterating horizontally with kdx=", kdx
-        
-        while True: # vertical loop
-            nAddV = 0
-            
-            if debug:
-                print "iterating vertically with ldx=", ldx
+    # Append with all V translated positions
+    nV = maxDist/dV/2+2 # will always contain the valid points, +2 just in case
+    nTot = len(objPosTot)
+    for idx in range(nTot):
+        for idV in range(nV):
+            objPosExt = [objPosTot[idx][0], objPosTot[idx][1]+2*idV*dV]
+            objPosTot.append(objPosExt)
+            # if debug:
+                # print "add", objPosExt
+            objPosExt = [objPosTot[idx][0], objPosTot[idx][1]-2*idV*dV]
+            objPosTot.append(objPosExt)
+            # if debug:
+                # print "add", objPosExt
 
-            # try adding point
-            objPosVirt = [
-                objPos[0]+kdx*dH,
-                objPos[1]+ldx*dV]
-            if debug:
-                print "potential virtual point", objPosVirt
-            if euclidDist(origPos, objPosVirt) <= maxDist:
-                nAddV += 1
-                objPosTot.append(objPosVirt)
-                if debug:
-                    print "> Appended"
-            
-            # try adding mirror point
-            objPosVirt = [
-                # objPos[0]-2*(objPos[0]-dimsH[0])+kdx*dH,
-                # objPos[1]-2*(objPos[1]-dimsV[0])+ldx*dV]
-                2*dimsH[0]-objPos[0]+kdx*dH,
-                2*dimsV[0]-objPos[1]+ldx*dV]
-            if debug:
-                print "potential virtual mirror point", objPosVirt
-            if euclidDist(origPos, objPosVirt) <= maxDist:
-                nAddV += 1
-                objPosTot.append(objPosVirt)
-                if debug:
-                    print "> Appended"
-            
-            if debug:
-                print "nAddV", nAddV
-            # programPause = raw_input("Press the <ENTER> key to continue...")
+    # Append with translation corresponding to mirror in H
+    nTot = len(objPosTot)
+    for idx in range(nTot):
+        objPosExt = [objPosTot[idx][0] - 2*(objPos[0]-dimsH[0]),
+                    objPosTot[idx][1]]
+        objPosTot.append(objPosExt)
 
-            # count up all the vertical increases to find total for this horizontal step
-            nAddH += nAddV
-            # if this round produced nothing new, break as we'll only go farther away
-            if nAddV == 0:
-                if debug:
-                    print "break V"
-                break
+    # Append with translation corresponding to mirror in V
+    nTot = len(objPosTot)
+    for idx in range(nTot):
+        objPosExt = [objPosTot[idx][0],
+                    objPosTot[idx][1] - 2*(objPos[1]-dimsV[0])]
+        objPosTot.append(objPosExt)
+    
+    # only retain non-duplicates within distance
+    objOut = []
+    distOut = []
 
-            ldx += 1
+    for objPosLoc in objPosTot:
+        distLoc = euclidDist(objPosLoc, origPos)
+        if not objPosLoc in objOut and distLoc <= maxDist:
+            objOut.append(objPosLoc)
+            distOut.append(distLoc)
 
-        # if this round produced nothing new, break as we'll only go farther away
-        if nAddH == 0:
-            if debug:
-                print "break H"
-            break
-
-        kdx += 1
-
-    return objPosTot
+    return objOut, distOut
 
 
 def euclidDist(X,Y):
     import math
-    if debug:
-        print "distance between", X, "and", Y, "=", math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
+    # if debug:
+        # print "distance between", X, "and", Y, "=", math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
     return math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
 
 def virtualizeWalls(dims):
@@ -122,7 +115,11 @@ if __name__ == "__main__":
     dims = [4,3]
     yourPos = [1,1]
     trainerPos = [3,2]
-    dist = 6
+    # dist = 4
+    dims = [3,2]
+    yourPos = [1,1]
+    trainerPos = [2,1]
+    dist = 4
     print dims, yourPos, trainerPos, dist
     print(solution(dims, yourPos, trainerPos, dist))
     print ""
