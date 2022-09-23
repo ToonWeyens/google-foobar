@@ -2,110 +2,114 @@ debug = True
 
 def solution(dims, yourPos, trainPos, dist):
     # create virtual room mirrored both horizontally and vertically
-    # this means that the trainer position leads to additional 8, for
-    # a total of 9
-    trainPos = [trainPos]*1
-    yourPos = [yourPos]*1
+    # this could carry on unlimited in all directions but is limited by the maximum dist
 
     # extend your and trainer position virtually
     # do this multiple times until there are no more new virtual points that have short enough distances
+    dimsH = [0,dims[0]]
+    dimsV = [0,dims[1]]
 
     # trainer
-    dimsH = [0,dims[0]]
-    dimsV = [0,dims[1]]
-    while True:
-        nPosBefore = len(trainPos)
-        virtualize_all4(dimsH, dimsV, trainPos, dist, yourPos[0])
-        nPosAfter = len(trainPos)
-        if nPosAfter == nPosBefore:
-            break
-        else:
-            # put walls further
-            virtualizeWalls(dimsH)
-            virtualizeWalls(dimsV)
+    trainPosTot = virtualize(yourPos, trainPos, dimsH, dimsV, dist)
     if debug:
-        print "virtual realm for trainers has been extended to width", dimsH, "height", dimsV
         print "all virtual trainers within reach:"
-        print trainPos
-
+        print trainPosTot
+    
     # you
-    dimsH = [0,dims[0]]
-    dimsV = [0,dims[1]]
-    while True:
-        nPosBefore = len(yourPos)
-        virtualize_all4(dimsH, dimsV, yourPos, dist, yourPos[0])
-        nPosAfter = len(yourPos)
-        if nPosAfter == nPosBefore:
-            break
-        else:
-            # put walls further
-            virtualizeWalls(dimsH)
-            virtualizeWalls(dimsV)
+    yourPosTot = virtualize(yourPos, yourPos, dimsH, dimsV, dist)
     if debug:
-        print "virtual realm for yourself has been extended to width", dimsH, "height", dimsV
-        print "all virtual yourselves within reach:"
-        print yourPos
+        print "all yourselves within reach:"
+        print yourPosTot
 
-# calculate all 4 virtualizations for the box
-# See inputs to virtualize for explanations
-def virtualize_all4(dimsH, dimsV, objPos, dist, yourPos):
-    # miror horizontally
-    virtualize(dimsH[0], 'H', objPos, dist, yourPos)
-    virtualize(dimsH[1], 'H', objPos, dist, yourPos)
+def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
+    # Create virtual representations of the object, by repeating indefinitely in
+    # horizontal and vertical directions using
+    #   x = x0 + k (H1-H0), k = -inf..inf
+    #   y = y0 + l (V1-V0), l = -inf..inf
+    #   x = x0 - 2(x0-H0) + k (H1-H0), k = -inf..inf
+    #   y = y0 - 2(y0-V0) + l (V1-V0), l = -inf..inf
+    # This is limited only by the max range
+    if debug:
+        print "let's find the virtual points for", objPos
 
-    # miror vertically
-    virtualize(dimsV[0], 'V', objPos, dist, yourPos)
-    virtualize(dimsV[1], 'V', objPos, dist, yourPos)
-        
-# Create the virtual alternate of reflections 
-# Input:
-#   - wallPos: position of wall
-#   - dim: 'H' if wall is is vertical (!), so wallPos refers to the horizontal direction, and vice versa for 'V'
-#   - objPos: (array of) object positions to be virtualized
-#   - maxDist: whether there is a maximum distance from origin for positions to be added
-#   - origin: origin from which to calculate maximum distance
-# Note: there is no output, but original wallPos will have been extended by mirroring with respect to wall
-def virtualize(wallPos, dim, objPos, maxDist, origin):
-    debug = False
-
-    nObjPos = len(objPos)
+    dH = dimsH[1]-dimsH[0]
+    dV = dimsV[1]-dimsV[0]
 
     if debug:
-        print "object positions: ", objPos
-        print "to be reflected wrt wall at", dim, "=", wallPos
-    for tp in objPos[0:nObjPos]: # need to limit as object increases in size
-        tpExt = mirror(wallPos, dim, tp)
-        dist = euclidDist(tpExt, origin)
+        print "dH =", dH, ", dV =", dV
+
+    # create list that we can append to
+    objPosTot = []
+
+    kdx = 0
+    while True: # horizontal loop
+        ldx = 0
+        nAddH = 0
+
         if debug:
-            print "for", tp, ": distance", dist, ", max:", maxDist
-        if dist <= maxDist:
+            print "iterating horizontally with kdx=", kdx
+        
+        while True: # vertical loop
+            nAddV = 0
+            
             if debug:
-                print "-> extend to", tpExt
-            objPos.append(tpExt)
-    if debug:
-        print "extended object positions", objPos
-    return
+                print "iterating vertically with ldx=", ldx
 
-def mirror(wallPos, dim, objPos):
-    debug = False
+            # try adding point
+            objPosVirt = [
+                objPos[0]+kdx*dH,
+                objPos[1]+ldx*dV]
+            if debug:
+                print "potential virtual point", objPosVirt
+            if euclidDist(origPos, objPosVirt) <= maxDist:
+                nAddV += 1
+                objPosTot.append(objPosVirt)
+                if debug:
+                    print "> Appended"
+            
+            # try adding mirror point
+            objPosVirt = [
+                # objPos[0]-2*(objPos[0]-dimsH[0])+kdx*dH,
+                # objPos[1]-2*(objPos[1]-dimsV[0])+ldx*dV]
+                2*dimsH[0]-objPos[0]+kdx*dH,
+                2*dimsV[0]-objPos[1]+ldx*dV]
+            if debug:
+                print "potential virtual mirror point", objPosVirt
+            if euclidDist(origPos, objPosVirt) <= maxDist:
+                nAddV += 1
+                objPosTot.append(objPosVirt)
+                if debug:
+                    print "> Appended"
+            
+            if debug:
+                print "nAddV", nAddV
+            # programPause = raw_input("Press the <ENTER> key to continue...")
 
-    import copy
+            # count up all the vertical increases to find total for this horizontal step
+            nAddH += nAddV
+            # if this round produced nothing new, break as we'll only go farther away
+            if nAddV == 0:
+                if debug:
+                    print "break V"
+                break
 
-    # if debug:
-    #     print "mirror", objPos, "along wall with", dim, "=", wallPos
-    reflPos = copy.copy(objPos)
-    if dim == 'H':
-        reflPos[0] += (wallPos-objPos[0])*2
-    elif dim == 'V':
-        reflPos[1] += (wallPos-objPos[1])*2
-    else:
-        reflPos = None
-    if debug:
-        print 'reflecting object', objPos, dim, 'over', wallPos, 'results in', reflPos
-    return reflPos
+            ldx += 1
+
+        # if this round produced nothing new, break as we'll only go farther away
+        if nAddH == 0:
+            if debug:
+                print "break H"
+            break
+
+        kdx += 1
+
+    return objPosTot
+
 
 def euclidDist(X,Y):
     import math
+    if debug:
+        print "distance between", X, "and", Y, "=", math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
     return math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
 
 def virtualizeWalls(dims):
@@ -116,9 +120,9 @@ def virtualizeWalls(dims):
 
 if __name__ == "__main__":
     dims = [4,3]
-    yourPos = [2,1]
-    trainerPos = [2,1]
-    dist = 15
+    yourPos = [1,1]
+    trainerPos = [3,2]
+    dist = 6
     print dims, yourPos, trainerPos, dist
     print(solution(dims, yourPos, trainerPos, dist))
     print ""
