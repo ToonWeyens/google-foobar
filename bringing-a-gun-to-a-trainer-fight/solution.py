@@ -25,6 +25,14 @@ def solution(dims, yourPos, trainPos, dist):
         print "all yourselves within reach:"
         for idx in range(len(yourPosTot)):
             print idx, yourPosTot[idx], yourDistTot[idx]
+    
+    # Find all feasible directions:
+    #   - If direction already exists and is shorter, don't add this one
+    #   - If you kill any version of yourself in a shorter distance, don't add this one
+    for trainPosLoc in trainPosTot:
+        dirLoc = [trainPosLoc[0] - yourPos[0], trainPosLoc[1] - yourPos[1]]
+        if debug:
+            print "try direction", dirLoc
 
 def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
     # Create virtual representations of the object, by repeating indefinitely in
