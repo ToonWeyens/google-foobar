@@ -95,8 +95,12 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
         if not objPosLoc in objOut and distLoc <= maxDist:
             objOut.append(objPosLoc)
             distOut.append(distLoc)
+    
 
-    return objOut, distOut
+    sortKeysDist = sorted(range(len(distOut)), key = lambda i: distOut[i])
+    objOutSort = [objOut[key] for key in sortKeysDist]
+
+    return objOutSort, sorted(distOut)
 
 
 def euclidDist(X,Y):
