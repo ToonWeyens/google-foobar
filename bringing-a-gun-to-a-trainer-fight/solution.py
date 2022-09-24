@@ -1,7 +1,8 @@
-from math import ceil
+from math import ceil, sqrt
 
 
 debug = True
+# debug = False
 
 def solution(dims, yourPos, trainPos, dist):
     # create virtual room mirrored both horizontally and vertically
@@ -41,11 +42,34 @@ def solution(dims, yourPos, trainPos, dist):
         for idx in range(len(yourDir)):
             print idx, yourDir[idx], yourDist[idx]
     
-    # find all valid trainer directions, i.e. those that are not blocked by yourself
+    # find all valid trainer directions, i.e. thoe that are not blocked by yourself
     nValidDir = 0
     for idx in range(len(trainDir)):
+        trainDirLoc = trainDir[idx]
+        trainDistLoc = trainDist[idx]
         if debug:
-            print "What would happen if we shot", trainDir[idx], "?"
+            print idx, "What would happen if we shot", trainDirLoc, "for distance of", trainDistLoc
+        if trainDirLoc in yourDir:
+            blockIdx = yourDir.index(trainDirLoc)
+            yourDirBlock = yourDir[blockIdx]
+            yourDistBlock = yourDist[blockIdx]
+            if debug:
+                print "You have a reflection at distance", yourDistBlock
+            if yourDistBlock <= trainDistLoc:
+                if debug:
+                    print "!! therefore you would shoot yourself"
+                continue
+            else:
+                if debug:
+                    print "but it's far enough"
+        
+        # if you got here, you've not shot yourself
+        nValidDir += 1
+
+    if debug:
+        print "number of valid directions:", nValidDir
+
+    return nValidDir
 
 def calcValidDir(objPos, origPos, dist):
     # Calculate direction between objPos and origPos
@@ -74,7 +98,8 @@ def calcValidDir(objPos, origPos, dist):
         elif dirLoc[0] != 0 and dirLoc[1] == 0:
             gcd = abs(dirLoc[0])
         else:
-            print dirLoc
+            if debug:
+                print dirLoc
             raise ValueError('Direction cannot be [0,0]')
         
         if gcd != 1:
@@ -85,8 +110,8 @@ def calcValidDir(objPos, origPos, dist):
         
         # add if not yet in list
         if not dirLoc in objDir:
-            if  debug:
-                print "adding", dirLoc
+            # if  debug:
+                # print "adding", dirLoc
             objDir.append(dirLoc)
         else:
             # if debug:
@@ -105,7 +130,7 @@ def calcValidDir(objPos, origPos, dist):
 
     return objDir, dist
 
-def virtualize(oos, objPos, dimsH, dimsV, maxDist):
+def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
     # Create virtual representations of the object, by repeating indefinitely in
     # horizontal and vertical directions using
     #   x = x0 + k (H1-H0), k = -inf..inf
@@ -126,8 +151,12 @@ def virtualize(oos, objPos, dimsH, dimsV, maxDist):
     objPosTot = []
 
     # Append with all H translated poitions
-    nH = int(ceil(maxDist/(dH*2)))+2 # will always contain the valid points, +2 just in case
+    nH = int(ceil((origPos[0] + maxDist) / dH))+1
+    if debug:
+        print "horizontal copies of box:", nH
     for idH in range(nH):
+        if debug:
+            print "idH=", idH,"/",nH-1
         objPosExt = [objPos[0]+2*idH*dH, objPos[1]]
         objPosTot.append(objPosExt)
         # if debug:
@@ -138,10 +167,14 @@ def virtualize(oos, objPos, dimsH, dimsV, maxDist):
         #     print "add", objPosExt
 
     # Append with all V translated positions
-    nV = int(ceil(maxDist/(dV*2)))+2 # will always contain the valid points, +2 just in case
+    nV = int(ceil((origPos[1] + maxDist) / dV))+1
+    if debug:
+        print "vertical copies of box:", nV
     nTot = len(objPosTot)
     for idx in range(nTot):
         for idV in range(nV):
+            if debug:
+                print "idV=", idV,"/",nV-1
             objPosExt = [objPosTot[idx][0], objPosTot[idx][1]+2*idV*dV]
             objPosTot.append(objPosExt)
             # if debug:
@@ -154,6 +187,8 @@ def virtualize(oos, objPos, dimsH, dimsV, maxDist):
     # Append with translation corresponding to mirror in H
     nTot = len(objPosTot)
     for idx in range(nTot):
+        if debug:
+            print "idx=", idx,"/",nTot-1
         objPosExt = [objPosTot[idx][0] - 2*(objPos[0]-dimsH[0]),
                     objPosTot[idx][1]]
         objPosTot.append(objPosExt)
@@ -161,16 +196,22 @@ def virtualize(oos, objPos, dimsH, dimsV, maxDist):
     # Append with translation corresponding to mirror in V
     nTot = len(objPosTot)
     for idx in range(nTot):
+        if debug:
+            print "idx=", idx,"/",nTot-1
         objPosExt = [objPosTot[idx][0],
                     objPosTot[idx][1] - 2*(objPos[1]-dimsV[0])]
         objPosTot.append(objPosExt)
+        !!!!!!!!!!! BETTER TO ONLY APPEND IF NOT YET IN THERE !!!!!!!!1
     
     # only retain non-duplicates within distance
     objOut = []
     distOut = []
 
-    for objPosLoc in objPosTot:
-        distLoc = euclidDist(objPosLoc, yourPos)
+    for idx in range(len(objPosTot)):
+        if debug:
+            print "idx=", idx,"/",len(objPosTot)-1
+        objPosLoc = objPosTot[idx]
+        distLoc = euclidDist(objPosLoc, origPos)
         if not objPosLoc in objOut and distLoc <= maxDist:
             objOut.append(objPosLoc)
             distOut.append(distLoc)
@@ -183,27 +224,37 @@ def virtualize(oos, objPos, dimsH, dimsV, maxDist):
 
 
 def euclidDist(X,Y):
-    import math
     # if debug:
-        # print "distance between", X, "and", Y, "=", math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
-    return math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
-
-def isParallel(X,Y):
-    if Y[0]//X[0] == Y[1]//X[1] and \
-        X[0]//Y[0] == X[1]//Y[1] and \
-        Y[0]%X[0] == 0 and \
-        Y[1]%X[1] == 0:
-        return True
+        # print "distance between", X, "and", Y, "=", sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
+    return sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
 
 if __name__ == "__main__":
-    dims = [4,3]
-    yourPos = [1,1]
-    trainerPos = [3,2]
-    dist = 8.1
-    # dims = [3,2]
-    # yourPos = [1,1]
-    # trainerPos = [2,1]
-    # dist = 4
-    print dims, yourPos, trainerPos, dist
-    print(solution(dims, yourPos, trainerPos, dist))
-    print ""
+    print "1"
+    sol =  solution([3, 2], [1, 1], [2, 1], 4)
+    print "solution =", sol
+    assert sol == 7
+
+    print "2"
+    assert solution([2, 5], [1, 2], [1, 4], 11) == 27
+    print "3"
+    assert solution([23, 10], [6, 4], [3, 2], 23) == 8
+    print "4"
+    assert solution([1250, 1250], [1000, 1000], [500, 400], 10000) == 196
+    print "5"
+    assert solution([300, 275], [150, 150], [180, 100], 500) == 9
+    print "6"
+    assert solution([3, 2], [1, 1], [2, 1], 7) == 19
+    print "7"
+    assert solution([2, 3], [1, 1], [1, 2], 4) == 7
+    print "8"
+    assert solution([3, 4], [1, 2], [2, 1], 7) == 10
+    print "9"
+    assert solution([4, 4], [2, 2], [3, 1], 6) == 7
+
+    print "10"
+    sol = solution([3, 4], [1, 1], [2, 2], 500)
+    print "solution =", sol
+    assert sol == 54243
+    print "11"
+    assert solution([10, 10], [4, 4], [3, 3], 5000) == 739323
+    print "12"
