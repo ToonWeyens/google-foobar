@@ -40,6 +40,12 @@ def solution(dims, yourPos, trainPos, dist):
         print "Direction of all virtual yourselves:"
         for idx in range(len(yourDir)):
             print idx, yourDir[idx], yourDist[idx]
+    
+    # find all valid trainer directions, i.e. those that are not blocked by yourself
+    nValidDir = 0
+    for idx in range(len(trainDir)):
+        if debug:
+            print "What would happen if we shot", trainDir[idx], "?"
 
 def calcValidDir(objPos, origPos, dist):
     # Calculate direction between objPos and origPos
