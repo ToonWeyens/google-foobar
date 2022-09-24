@@ -29,12 +29,76 @@ def solution(dims, yourPos, trainPos, dist):
     # Find all feasible directions:
     #   - If direction already exists and is shorter, don't add this one
     #   - If you kill any version of yourself in a shorter distance, don't add this one
-    for trainPosLoc in trainPosTot:
-        dirLoc = [trainPosLoc[0] - yourPos[0], trainPosLoc[1] - yourPos[1]]
-        if debug:
-            print "try direction", dirLoc
+    trainDir, trainDist = calcValidDir(trainPosTot, yourPos, trainDistTot)
+    if debug:
+        print "Direction of all virtual trainers:"
+        for idx in range(len(trainDir)):
+            print idx, trainDir[idx], trainDist[idx]
+        
+    yourDir, yourDist = calcValidDir(yourPosTot[1:], yourPos, yourDistTot[1:])
+    if debug:
+        print "Direction of all virtual yourselves:"
+        for idx in range(len(yourDir)):
+            print idx, yourDir[idx], yourDist[idx]
 
-def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
+def calcValidDir(objPos, origPos, dist):
+    # Calculate direction between objPos and origPos
+    # Express these as 2D vectors making sure the GCD is 1
+    # Also only maintain distinct values, no duplciates
+    import fractions
+    assert len(objPos) == len(dist), "lengths of positions and distance different"
+
+    objDir = []
+    indToRemove = []
+
+    idx = 0
+    for idx in range(len(objPos)):
+        objPosLoc = objPos[idx]
+        distLoc = dist[idx]
+
+        dirLoc = [objPosLoc[0]-origPos[0], objPosLoc[1]-origPos[1]]
+        if debug:
+            print "checking if we can add", dirLoc, "with distance", distLoc, "to direction list"
+
+        # reduce to having gcd = 1
+        if abs(dirLoc[0]) > 0 and abs(dirLoc[1]) > 0:
+            gcd = abs(fractions.gcd(dirLoc[0],dirLoc[1]))
+        elif dirLoc[0] == 0 and dirLoc[1] != 0:
+            gcd = abs(dirLoc[1])
+        elif dirLoc[0] != 0 and dirLoc[1] == 0:
+            gcd = abs(dirLoc[0])
+        else:
+            print dirLoc
+            raise ValueError('Direction cannot be [0,0]')
+        
+        if gcd != 1:
+            # if debug:
+                # print "gcd[",dirLoc[0],",",dirLoc[1],"] =", gcd
+            # from https://stackoverflow.com/a/8244949/3229162
+            dirLoc[:] = [x / gcd for x in dirLoc]
+        
+        # add if not yet in list
+        if not dirLoc in objDir:
+            if  debug:
+                print "adding", dirLoc
+            objDir.append(dirLoc)
+        else:
+            print "deleting element", idx, "from dist"
+            indToRemove.append(idx)
+        
+    if debug:
+        print "deleteing elements from dist", indToRemove
+    for idx in reversed(indToRemove):
+        del dist[idx]
+    
+    if debug:
+        print "from", len(objPos), ", added", len(objDir), "directions"
+
+    assert len(objDir) == len(dist), "lengths of direction and distance different"
+
+    return objDir, dist
+
+def virtualize(oos, objPos, dimsH, dimsV, maxDist):
     # Create virtual representations of the object, by repeating indefinitely in
     # horizontal and vertical directions using
     #   x = x0 + k (H1-H0), k = -inf..inf
@@ -99,7 +163,7 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist):
     distOut = []
 
     for objPosLoc in objPosTot:
-        distLoc = euclidDist(objPosLoc, origPos)
+        distLoc = euclidDist(objPosLoc, yourPos)
         if not objPosLoc in objOut and distLoc <= maxDist:
             objOut.append(objPosLoc)
             distOut.append(distLoc)
@@ -117,21 +181,22 @@ def euclidDist(X,Y):
         # print "distance between", X, "and", Y, "=", math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
     return math.sqrt((X[0]-Y[0])**2+(X[1]-Y[1])**2)
 
-def virtualizeWalls(dims):
-    delta = dims[1]-dims[0]
-    dims[0] -= delta
-    dims[1] += delta
-
+def isParallel(X,Y):
+    if Y[0]//X[0] == Y[1]//X[1] and \
+        X[0]//Y[0] == X[1]//Y[1] and \
+        Y[0]%X[0] == 0 and \
+        Y[1]%X[1] == 0:
+        return True
 
 if __name__ == "__main__":
     dims = [4,3]
     yourPos = [1,1]
     trainerPos = [3,2]
+    dist = 8
+    # dims = [3,2]
+    # yourPos = [1,1]
+    # trainerPos = [2,1]
     # dist = 4
-    dims = [3,2]
-    yourPos = [1,1]
-    trainerPos = [2,1]
-    dist = 4
     print dims, yourPos, trainerPos, dist
     print(solution(dims, yourPos, trainerPos, dist))
     print ""
