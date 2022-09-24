@@ -57,8 +57,8 @@ def calcValidDir(objPos, origPos, dist):
         distLoc = dist[idx]
 
         dirLoc = [objPosLoc[0]-origPos[0], objPosLoc[1]-origPos[1]]
-        if debug:
-            print "checking if we can add", dirLoc, "with distance", distLoc, "to direction list"
+        # if debug:
+            # print "checking if we can add", dirLoc, "with distance", distLoc, "to direction list"
 
         # reduce to having gcd = 1
         if abs(dirLoc[0]) > 0 and abs(dirLoc[1]) > 0:
@@ -83,11 +83,12 @@ def calcValidDir(objPos, origPos, dist):
                 print "adding", dirLoc
             objDir.append(dirLoc)
         else:
-            print "deleting element", idx, "from dist"
+            # if debug:
+                # print "deleting element", idx, "from dist"
             indToRemove.append(idx)
         
-    if debug:
-        print "deleteing elements from dist", indToRemove
+    # if debug:
+        # print "deleting elements from dist", indToRemove
     for idx in reversed(indToRemove):
         del dist[idx]
     
@@ -119,7 +120,7 @@ def virtualize(oos, objPos, dimsH, dimsV, maxDist):
     objPosTot = []
 
     # Append with all H translated poitions
-    nH = maxDist/dH/2+2 # will always contain the valid points, +2 just in case
+    nH = int(ceil(maxDist/(dH*2)))+2 # will always contain the valid points, +2 just in case
     for idH in range(nH):
         objPosExt = [objPos[0]+2*idH*dH, objPos[1]]
         objPosTot.append(objPosExt)
@@ -131,7 +132,7 @@ def virtualize(oos, objPos, dimsH, dimsV, maxDist):
         #     print "add", objPosExt
 
     # Append with all V translated positions
-    nV = maxDist/dV/2+2 # will always contain the valid points, +2 just in case
+    nV = int(ceil(maxDist/(dV*2)))+2 # will always contain the valid points, +2 just in case
     nTot = len(objPosTot)
     for idx in range(nTot):
         for idV in range(nV):
@@ -192,7 +193,7 @@ if __name__ == "__main__":
     dims = [4,3]
     yourPos = [1,1]
     trainerPos = [3,2]
-    dist = 8
+    dist = 8.1
     # dims = [3,2]
     # yourPos = [1,1]
     # trainerPos = [2,1]
