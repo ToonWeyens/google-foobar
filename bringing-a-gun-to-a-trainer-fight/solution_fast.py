@@ -63,8 +63,8 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
             objPosExt = (objPos[0]+2*idH*dH, objPos[1]+2*idV*dV)
             appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
 
-    # print ">>> Resulting translations"
-    # printObjData(objData)
+    print ">>> Resulting translations"
+    printObjData(objData)
 
     # Append with translation corresponding to mirror in H
     nTot = len(objData[0])
@@ -72,8 +72,8 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
         objPosExt = (objData[0][idx][0] - 2*dObjPos[0], objData[0][idx][1])
         appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
 
-    # print ">>> Resulting H mirror translatsions"
-    # printObjData(objData)
+    print ">>> Resulting H mirror translatsions"
+    printObjData(objData)
 
     # Append with translation corresponding to mirror in V
     nTot = len(objData[0])
@@ -81,8 +81,8 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
         objPosExt = (objData[0][idx][0], objData[0][idx][1] - 2*dObjPos[1])
         appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
 
-    # print ">>> Resulting V mirror translatsions"
-    # printObjData(objData)
+    print ">>> Resulting V mirror translatsions"
+    printObjData(objData)
 
     return objData
 
@@ -97,8 +97,9 @@ def appendIfValid(objPos, origPos, maxDist, objData, objDataExtra=None):
     # Note: You can pass an extra ObjData to compare to
     # This is useful if you want to, for example, compare addiitonally to existing
     # positions of virtual selves
-    debug = False
+    debug = True
 
+    print "NEEEEEEEEEEEEEEEEEEEEEEEEEEEED TO OVERWRITE WITIH SHORTER DISTANCE !!!!!!!!!!!!"
     distLoc = euclidDist(objPos, origPos)
     if debug:
         print "trying objPos", objPos, "with distance", distLoc
@@ -168,7 +169,7 @@ def printObjData(objData):
 
 if __name__ == "__main__":
     print "1"
-    sol =  solution([3, 2], [1, 1], [2, 1], 4)
+    sol =  solution([3, 2], [1, 1], [2, 1], 6)
     print "solution =", sol
     assert sol == 7
 
