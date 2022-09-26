@@ -1,8 +1,8 @@
 from math import ceil, sqrt
 import numpy as np
 
-debug = True
-# debug = False
+# debug = True
+debug = False
 
 if debug:
     nZeroDist = 0
@@ -44,10 +44,11 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
 
     dH = dimsH[1]-dimsH[0]
     dV = dimsV[1]-dimsV[0]
-    dObjPos = [objPos[0]-dimsH[0], objPos[1]-dimsH[1]]
+    dObjPos = [objPos[0]-dimsH[0], objPos[1]-dimsH[0]]
 
     if debug:
         print "dH =", dH, ", dV =", dV
+        print "dObjPos =", dObjPos
 
     # create list that we can append to
     objData = []
@@ -60,29 +61,15 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
     nV = int(ceil((origPos[1] + maxDist) / (2*dV)))+1
     for idH in range(-nH,nH+1):
         for idV in range(-nV,nV+1):
-            objPosExt = (objPos[0]+2*idH*dH, objPos[1]+2*idV*dV)
-            appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
-
-    print ">>> Resulting translations"
-    printObjData(objData)
-
-    # Append with translation corresponding to mirror in H
-    nTot = len(objData[0])
-    for idx in range(nTot):
-        objPosExt = (objData[0][idx][0] - 2*dObjPos[0], objData[0][idx][1])
-        appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
-
-    print ">>> Resulting H mirror translatsions"
-    printObjData(objData)
-
-    # Append with translation corresponding to mirror in V
-    nTot = len(objData[0])
-    for idx in range(nTot):
-        objPosExt = (objData[0][idx][0], objData[0][idx][1] - 2*dObjPos[1])
-        appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
-
-    print ">>> Resulting V mirror translatsions"
-    printObjData(objData)
+            objPosExtBase = (objPos[0]+2*idH*dH, objPos[1]+2*idV*dV)
+            if debug:
+                print "trying all mirror images of", objPosExtBase
+            for idx in range(0,2):
+                for idy in range(0,2):
+                    # try the original and all possible reflections
+                    objPosExt = (objPosExtBase[0] - 2*idx*dObjPos[0],
+                        objPosExtBase[1] - 2*idy*dObjPos[1])
+                    appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
 
     return objData
 
@@ -94,34 +81,66 @@ def appendIfValid(objPos, origPos, maxDist, objData, objDataExtra=None):
     #   - (x,y): position as tuple
     #   - d: distance as float
     #   - (d1,d2): direction as tuple, with gcd=1
-    # Note: You can pass an extra ObjData to compare to
+    # Note: You can pass an extra ObjData to compare to (readonly)
     # This is useful if you want to, for example, compare addiitonally to existing
     # positions of virtual selves
-    debug = True
+    # debug = True
+    debug = False
 
-    print "NEEEEEEEEEEEEEEEEEEEEEEEEEEEED TO OVERWRITE WITIH SHORTER DISTANCE !!!!!!!!!!!!"
     distLoc = euclidDist(objPos, origPos)
     if debug:
         print "trying objPos", objPos, "with distance", distLoc
     if distLoc <= maxDist:
         if debug:
             print "  within distance <=", maxDist
-        if not objPos in objData[0]:
+        dirLoc = calcValidDir(objPos, origPos)
+        if dirLoc is None:
             if debug:
-                print "    not already existing"
-            dirLoc = calcValidDir(objPos, origPos)
-            if debug:
-                print "      trying direction", dirLoc
-            if not dirLoc is None:
+                print "    and this is the origin, with", objPos, ", so add"
+            assert objPos == tuple(origPos), "dirLoc is none but not origin"
+            objData[0].append(objPos)
+            objData[1].append(0.0)
+            objData[2].append(None)
+            return
+        elif not dirLoc in objData[2]:
+            # This position does not yet exist in the list
+            addLoc = True
+            if not objDataExtra is None:
                 if debug:
-                    print "        nonzero"
-                if not dirLoc in objData[2]:
+                    print "    but first let's check the extra positions"
+                if dirLoc in objDataExtra[2]:
+                    duplIdx = objDataExtra[2].index(dirLoc)
                     if debug:
-                        print "          not already existing"
-                    objData[0].append(objPos)
-                    objData[1].append(distLoc)
-                    objData[2].append(dirLoc)
+                        print "      and direction", dirLoc, "is already in the extra list, with distance", objDataExtra[1][duplIdx]
+                    if distLoc >= objDataExtra[1][duplIdx]:
+                        addLoc = False
+                        if debug:
+                            print "x     which is not shorter, so don't add"
 
+            if addLoc:
+                # cleared also the external list
+                if debug:
+                    print "x   and direction", dirLoc, "does not already exist, so add"
+                objData[0].append(objPos)
+                objData[1].append(distLoc)
+                objData[2].append(dirLoc)
+                return
+        else:
+            # this position already exist in the list, so only overwrite if better
+            duplIdx = objData[2].index(dirLoc)
+            if debug:
+                print "    but direction", dirLoc, "is already in the list, with distance", objData[1][duplIdx]
+            if distLoc < objData[1][duplIdx]:
+                # already in the list, so replace if new one is closer
+                if debug:
+                    print "x   which is farther, so overwrite"
+                objData[0][duplIdx] = objPos
+                objData[1][duplIdx] = distLoc
+                objData[2][duplIdx] = dirLoc
+                return
+            else:
+                # Nothing to do
+                return
 
 def euclidDist(X,Y):
     # if debug:
@@ -169,38 +188,46 @@ def printObjData(objData):
 
 if __name__ == "__main__":
     print "1"
-    sol =  solution([3, 2], [1, 1], [2, 1], 6)
+    sol =  solution([3, 2], [1, 1], [2, 1], 4)
     print "solution =", sol
     assert sol == 7
 
     print "2"
     sol =  solution([2, 5], [1, 2], [1, 4], 11)
-    assert solution(sol) == 27
+    assert sol == 27
 
     print "3"
     sol = solution([23, 10], [6, 4], [3, 2], 23)
-    assert solution(sol) == 8
+    assert sol == 8
 
     print "4"
     sol = solution([1250, 1250], [1000, 1000], [500, 400], 10000)
-    assert solution(sol) == 196
+    assert sol == 196
 
     print "5"
-    assert solution([300, 275], [150, 150], [180, 100], 500) == 9
-    assert solution(sol) == 9
+    sol = solution([300, 275], [150, 150], [180, 100], 500)
+    assert sol == 9
+
     print "6"
-    assert solution([3, 2], [1, 1], [2, 1], 7) == 19
+    sol = solution([3, 2], [1, 1], [2, 1], 7) 
+    assert sol == 19
+
     print "7"
-    assert solution([2, 3], [1, 1], [1, 2], 4) == 7
+    sol = solution([2, 3], [1, 1], [1, 2], 4)
+    assert sol == 7
+
     print "8"
-    assert solution([3, 4], [1, 2], [2, 1], 7) == 10
+    sol = solution([3, 4], [1, 2], [2, 1], 7)
+    assert sol == 10
+
     print "9"
-    assert solution([4, 4], [2, 2], [3, 1], 6) == 7
+    sol = solution([4, 4], [2, 2], [3, 1], 6)
+    assert sol == 7
 
     print "10"
     sol = solution([3, 4], [1, 1], [2, 2], 500)
-    print "solution =", sol
     assert sol == 54243
+
     print "11"
-    assert solution([10, 10], [4, 4], [3, 3], 5000) == 739323
-    print "12"
+    sol = solution([10, 10], [4, 4], [3, 3], 5000)
+    assert sol == 739323
