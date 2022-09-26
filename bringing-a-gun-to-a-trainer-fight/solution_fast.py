@@ -53,6 +53,7 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
 
     dH = dimsH[1]-dimsH[0]
     dV = dimsV[1]-dimsV[0]
+    dObjPos = [objPos[0]-dimsH[0], objPos[1]-dimsH[1]]
 
     if debug:
         print "dH =", dH, ", dV =", dV
@@ -62,58 +63,40 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
     objData.append([])
     objData.append([])
     objData.append([])
-    objData[0].append(tuple(objPos))
-    objData[1].append(euclidDist(objPos, origPos))
-    objData[2].append(calcValidDir(objPos, origPos))
 
-    # Append with all H translated poitions
-    nH = int(ceil((origPos[0] + maxDist) / dH))+1
-    if debug:
-        print "horizontal copies of box:", nH
-    for idH in range(1,nH): # origin already potentially included
-        print ">>!>!>idH", idH
-        for pmOne in range(-1,2,2):
-            objPosExt = (objPos[0]+pmOne*2*idH*dH, objPos[1])
-            print ">>!>!>objPosExt", objPosExt
+    # see how many double boxes are necessary
+    nH = int(ceil((origPos[0] + maxDist) / (2*dH)))+1
+    nV = int(ceil((origPos[1] + maxDist) / (2*dV)))+1
+    for idH in range(-nH,nH+1):
+        for idV in range(-nV,nV+1):
+            objPosExt = (objPos[0]+2*idH*dH, objPos[1]+2*idV*dV)
+            print "trying to add", objPosExt
             appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
-    if debug:
-        print ">>> after H translations"
-        printObjData(objData)
 
-    # Append with all V translated positions
-    nV = int(ceil((origPos[1] + maxDist) / dV))+1
-    if debug:
-        print "vertical copies of box:", nV
-    nTot = len(objData)
-    for idx in range(nTot):
-        for idV in range(nV):
-            for pmOne in range(-1,2,2):
-                objPosExt = (objPos[0], objPos[1]+2*idV*dV)
-                appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
-    if debug:
-        print ">>> after V translations"
-        printObjData(objData)
+    print ">>> Resulting translations"
+    printObjData(objData)
 
     # Append with translation corresponding to mirror in H
     nTot = len(objData)
     if debug:
         print "H mirror translations:", nTot
     for idx in range(nTot):
-        if debug:
-            print idx, "/", nTot-1
-            printObjData(objData)
-        objPosExt = (objData[0][idx][0] - 2*(objPos[0]-dimsH[0]),
-                    objData[0][idx][1])
+        objPosExt = (objData[0][idx][0] - 2*dObjPos[0], objData[0][idx][1])
         appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
+
+    print ">>> Resulting H mirror translatsions"
+    printObjData(objData)
 
     # Append with translation corresponding to mirror in V
     nTot = len(objData)
     if debug:
         print "V mirror translations:", nTot
     for idx in range(nTot):
-        objPosExt = (objData[0][idx][0],
-                    objData[0][idx][1] - 2*(objPos[1]-dimsV[0]))
+        objPosExt = (objData[0][idx][0], objData[0][idx][1] - 2*dObjPos[1])
         appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
+
+    print ">>> Resulting V mirror translatsions"
+    printObjData(objData)
 
     return objData
 
