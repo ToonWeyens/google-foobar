@@ -23,21 +23,12 @@ def solution(dims, yourPos, trainPos, dist):
         printObjData(yourData)
 
     # trainers
-    yourData = virtualize(yourPos, trainPos, dimsH, dimsV, dist, objDataExtra=yourData)
+    trainData = virtualize(yourPos, trainPos, dimsH, dimsV, dist, objDataExtra=yourData)
     if debug:
         print "all virtual trainers within reach:"
         printObjData(trainData)
-    
-    
-    # Find all feasible directions:
-    #   - If direction already exists and is shorter, don't add this one
-    #   - If you kill any version of yourself in a shorter distance, don't add this one
-    # trainDir, trainDist = calcValidDir(trainPosTot, yourPos, trainDistTot)
-    # if debug:
-    #     print "Direction of all virtual trainers:"
-    #     for idx in range(len(trainDir)):
-    #         print idx, trainDir[idx], trainDist[idx]
         
+    return len(trainData[0])
 
 def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
     # Create virtual representations of the object, by repeating indefinitely in
@@ -70,33 +61,28 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
     for idH in range(-nH,nH+1):
         for idV in range(-nV,nV+1):
             objPosExt = (objPos[0]+2*idH*dH, objPos[1]+2*idV*dV)
-            print "trying to add", objPosExt
             appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
 
-    print ">>> Resulting translations"
-    printObjData(objData)
+    # print ">>> Resulting translations"
+    # printObjData(objData)
 
     # Append with translation corresponding to mirror in H
-    nTot = len(objData)
-    if debug:
-        print "H mirror translations:", nTot
+    nTot = len(objData[0])
     for idx in range(nTot):
         objPosExt = (objData[0][idx][0] - 2*dObjPos[0], objData[0][idx][1])
         appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
 
-    print ">>> Resulting H mirror translatsions"
-    printObjData(objData)
+    # print ">>> Resulting H mirror translatsions"
+    # printObjData(objData)
 
     # Append with translation corresponding to mirror in V
-    nTot = len(objData)
-    if debug:
-        print "V mirror translations:", nTot
+    nTot = len(objData[0])
     for idx in range(nTot):
         objPosExt = (objData[0][idx][0], objData[0][idx][1] - 2*dObjPos[1])
         appendIfValid(objPosExt, origPos, maxDist, objData, objDataExtra)
 
-    print ">>> Resulting V mirror translatsions"
-    printObjData(objData)
+    # print ">>> Resulting V mirror translatsions"
+    # printObjData(objData)
 
     return objData
 
@@ -111,24 +97,26 @@ def appendIfValid(objPos, origPos, maxDist, objData, objDataExtra=None):
     # Note: You can pass an extra ObjData to compare to
     # This is useful if you want to, for example, compare addiitonally to existing
     # positions of virtual selves
+    debug = False
+
     distLoc = euclidDist(objPos, origPos)
     if debug:
-        print "trying distLoc", distLoc
+        print "trying objPos", objPos, "with distance", distLoc
     if distLoc <= maxDist:
         if debug:
-            print "within distance <=", maxDist
+            print "  within distance <=", maxDist
         if not objPos in objData[0]:
             if debug:
-                print "not already existing"
+                print "    not already existing"
             dirLoc = calcValidDir(objPos, origPos)
             if debug:
-                print "trying direction", dirLoc
+                print "      trying direction", dirLoc
             if not dirLoc is None:
                 if debug:
-                    print "nonzero"
-                if not dirLoc in objData[1]:
+                    print "        nonzero"
+                if not dirLoc in objData[2]:
                     if debug:
-                        print "not already existing"
+                        print "          not already existing"
                     objData[0].append(objPos)
                     objData[1].append(distLoc)
                     objData[2].append(dirLoc)
@@ -179,4 +167,39 @@ def printObjData(objData):
         print idx, "/", nIdx-1, ": pos", objData[0][idx], ", dist", objData[1][idx], ", dir", objData[2][idx]
 
 if __name__ == "__main__":
+    print "1"
+    sol =  solution([3, 2], [1, 1], [2, 1], 4)
+    print "solution =", sol
+    assert sol == 7
+
+    print "2"
+    sol =  solution([2, 5], [1, 2], [1, 4], 11)
+    assert solution(sol) == 27
+
+    print "3"
+    sol = solution([23, 10], [6, 4], [3, 2], 23)
+    assert solution(sol) == 8
+
+    print "4"
+    sol = solution([1250, 1250], [1000, 1000], [500, 400], 10000)
+    assert solution(sol) == 196
+
+    print "5"
+    assert solution([300, 275], [150, 150], [180, 100], 500) == 9
+    assert solution(sol) == 9
+    print "6"
+    assert solution([3, 2], [1, 1], [2, 1], 7) == 19
+    print "7"
+    assert solution([2, 3], [1, 1], [1, 2], 4) == 7
+    print "8"
     assert solution([3, 4], [1, 2], [2, 1], 7) == 10
+    print "9"
+    assert solution([4, 4], [2, 2], [3, 1], 6) == 7
+
+    print "10"
+    sol = solution([3, 4], [1, 1], [2, 2], 500)
+    print "solution =", sol
+    assert sol == 54243
+    print "11"
+    assert solution([10, 10], [4, 4], [3, 3], 5000) == 739323
+    print "12"
