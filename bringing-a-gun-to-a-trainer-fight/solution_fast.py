@@ -1,8 +1,8 @@
 from math import ceil, sqrt
 import numpy as np
 
-# debug = True
-debug = False
+debug = True
+# debug = False
 
 if debug:
     nZeroDist = 0
@@ -63,6 +63,7 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
         for idV in range(-nV,nV+1):
             objPosExtBase = (objPos[0]+2*idH*dH, objPos[1]+2*idV*dV)
             if debug:
+                print "(", -nV, "<=", idV, "<", nV+1, "), (", -nH, "<=", idH, "<", nH+1, ")"
                 print "trying all mirror images of", objPosExtBase
             for idx in range(0,2):
                 for idy in range(0,2):
@@ -187,47 +188,49 @@ def printObjData(objData):
         print idx, "/", nIdx-1, ": pos", objData[0][idx], ", dist", objData[1][idx], ", dir", objData[2][idx]
 
 if __name__ == "__main__":
-    print "1"
-    sol =  solution([3, 2], [1, 1], [2, 1], 4)
-    print "solution =", sol
-    assert sol == 7
+    # print "1"
+    # sol =  solution([3, 2], [1, 1], [2, 1], 4)
+    # print "solution =", sol
+    # assert sol == 7
 
-    print "2"
-    sol =  solution([2, 5], [1, 2], [1, 4], 11)
-    assert sol == 27
+    # print "2"
+    # sol =  solution([2, 5], [1, 2], [1, 4], 11)
+    # assert sol == 27
 
-    print "3"
-    sol = solution([23, 10], [6, 4], [3, 2], 23)
-    assert sol == 8
+    # print "3"
+    # sol = solution([23, 10], [6, 4], [3, 2], 23)
+    # assert sol == 8
 
-    print "4"
-    sol = solution([1250, 1250], [1000, 1000], [500, 400], 10000)
-    assert sol == 196
+    # print "4"
+    # sol = solution([1250, 1250], [1000, 1000], [500, 400], 10000)
+    # assert sol == 196
 
-    print "5"
-    sol = solution([300, 275], [150, 150], [180, 100], 500)
-    assert sol == 9
+    # print "5"
+    # sol = solution([300, 275], [150, 150], [180, 100], 500)
+    # assert sol == 9
 
-    print "6"
-    sol = solution([3, 2], [1, 1], [2, 1], 7) 
-    assert sol == 19
+    # print "6"
+    # sol = solution([3, 2], [1, 1], [2, 1], 7) 
+    # assert sol == 19
 
-    print "7"
-    sol = solution([2, 3], [1, 1], [1, 2], 4)
-    assert sol == 7
+    # print "7"
+    # sol = solution([2, 3], [1, 1], [1, 2], 4)
+    # assert sol == 7
 
-    print "8"
-    sol = solution([3, 4], [1, 2], [2, 1], 7)
-    assert sol == 10
+    # print "8"
+    # sol = solution([3, 4], [1, 2], [2, 1], 7)
+    # assert sol == 10
 
-    print "9"
-    sol = solution([4, 4], [2, 2], [3, 1], 6)
-    assert sol == 7
+    # print "9"
+    # sol = solution([4, 4], [2, 2], [3, 1], 6)
+    # assert sol == 7
 
-    print "10"
-    sol = solution([3, 4], [1, 1], [2, 2], 500)
-    assert sol == 54243
+    # print "10"
+    # sol = solution([3, 4], [1, 1], [2, 2], 500)
+    # print "solution =", sol
+    # assert sol == 54243
 
     print "11"
     sol = solution([10, 10], [4, 4], [3, 3], 5000)
+    print "solution =", sol
     assert sol == 739323
