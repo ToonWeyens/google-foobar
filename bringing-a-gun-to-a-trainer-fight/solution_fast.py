@@ -57,14 +57,26 @@ def virtualize(origPos, objPos, dimsH, dimsV, maxDist, objDataExtra=None):
     objData.append([])
 
     # see how many double boxes are necessary
-    nH = int(ceil((origPos[0] + maxDist) / (2*dH)))+1
-    nV = int(ceil((origPos[1] + maxDist) / (2*dV)))+1
-    for idH in range(-nH,nH+1):
-        for idV in range(-nV,nV+1):
-            objPosExtBase = (objPos[0]+2*idH*dH, objPos[1]+2*idV*dV)
+    mMax = calcHRange(origPos, maxDist**2, [0], dH, dV)
+    if debug:
+        print "horizontal range:"
+        for m in mMax:
+            print "0/0:", -m, "...", m, " x dH"
+    mRange = range(-mMax[0],mMax[0]+1)
+    nMax4Range = calcVRange(origPos, maxDist**2, mRange, dH, dV)
+    if debug:
+        print "vertical range:"
+        for m, nMax in zip(mRange, nMax4Range):
+            print m, "/", mMax[0], ":", -nMax, "...", nMax, " x dV"
+
+    mRange = range(-mMax[0]-1,mMax[0]+2) # add 1 to both sides to capture all virtual points
+    for m, nMax in zip(mRange, nMax4Range):
+        nRange = range(-nMax-1, nMax+2) # add 1 to both sides to capture all virtual points
+        for n in nRange:
+            objPosExtBase = (objPos[0]+2*m*dH, objPos[1]+2*n*dV)
             if debug:
-                print "(", -nV, "<=", idV, "<", nV+1, "), (", -nH, "<=", idH, "<", nH+1, ")"
-                print "trying all mirror images of", objPosExtBase
+                print mRange[0], "<=", m, "<=", mRange[1], ",", nRange[0], "<=", n, "<=", nRange[1], \
+                    ": trying all points for base position", objPosExtBase
             for idx in range(0,2):
                 for idy in range(0,2):
                     # try the original and all possible reflections
@@ -142,6 +154,28 @@ def appendIfValid(objPos, origPos, maxDist, objData, objDataExtra=None):
             else:
                 # Nothing to do
                 return
+
+def calcHRange(origPos, dist2, n, dH, dV):
+    # Note: n is an array
+    denom = np.array(n)*2*dV
+    denom += origPos[1] # y
+    mAbs = np.sqrt(dist2-np.power(denom, 2))
+    mAbs = (mAbs - origPos[0])/(2*dH)
+
+    mAbsInt = np.floor(mAbs).astype(int)
+    
+    return mAbsInt
+
+def calcVRange(origPos, dist2, m, dH, dV):
+    # Note: m is an array
+    denom = np.array(m)*2*dH
+    denom += origPos[0] # y
+    nAbs = np.sqrt(dist2-np.power(denom, 2))
+    nAbs = (nAbs - origPos[1])/(2*dV)
+
+    nAbsInt = np.floor(nAbs).astype(int)
+
+    return nAbsInt
 
 def euclidDist(X,Y):
     # if debug:
@@ -225,12 +259,12 @@ if __name__ == "__main__":
     # sol = solution([4, 4], [2, 2], [3, 1], 6)
     # assert sol == 7
 
-    # print "10"
-    # sol = solution([3, 4], [1, 1], [2, 2], 500)
-    # print "solution =", sol
-    # assert sol == 54243
-
-    print "11"
-    sol = solution([10, 10], [4, 4], [3, 3], 5000)
+    print "10"
+    sol = solution([3, 4], [1, 1], [2, 2], 500)
     print "solution =", sol
-    assert sol == 739323
+    assert sol == 54243
+
+    # print "11"
+    # sol = solution([10, 10], [4, 4], [3, 3], 5000)
+    # print "solution =", sol
+    # assert sol == 739323
