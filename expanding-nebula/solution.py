@@ -1,41 +1,79 @@
-from difflib import restore
-
-
 debug = True
+
+class Node:
+   def __init__(self, data=None):
+      self.data = data
+      self.prev = None
+
+class NodeList:
+   def __init__(self):
+      self.head = None
+
 
 def solution(x):
     H = len(x)
     W = len(x[0])
     if debug:
         print 'table of dimensions (', H, ",", W, ")"
-    # val[0] = []
 
-    # define the intervals, e.g.
+    # We will use a linked list to describe the different ways in which each next element
+    # can be different, going in the following direction:
     #  [986]
     #  [753]
     #  [421]
-    # will have multiple levels:
+    # This will lead to the concept of levels I, as such:
     #  [432]
     #  [321]
     #  [210]
-    # and only the previous level's multiple possibilities are required
-    # to calculate the next
+    # This way only the previous level's multiple possibilities are required to calculate the next
     # The level indicator I goes from 0 to H+W-2 where H is the height of the table and W the width
-    # For each level we start at point [max(0,H-1-I), W-1]
-    # and we iterate for i going from 0 until min(I,W,H)-1
+    # For each level we start lower left and and we iterate towards top right
+    # If the grid is not squre, we will remove the points that fall outside of it by skipping
+    vals = []
+    vals.append([])
+    vals[0].append(NodeList())
+    
+
+    vals = []
+    vals.append([None]*3)
+
     for I in range(H+W-1):
-        startPos = [max(0, H-1-I), W-1]
-        if debug:
-            print "for level", I, "starting position", startPos
-        for i in range(min(I, W, H)):
-            pos = [startPos[0]+i, startPos[1]-i]
+        vals_for_level_I = []
+        i = 0
+        for idx in range(I+1):
+            pos = [H-1-I+idx, W-1-idx]
+            if not (pos[0] >= 0 and pos[0] < H and pos[1] >= 0 and pos[1] < W):
+                continue
+            
+            # find valid options for current point
+            # the entries in vals store
+            # - for each option (first index)
+            # - the series of values at the boundary points,
+            # where boundary points are defined as in this example for level 4:
+            #  [    ]
+            #  [   5]
+            #  [  34]
+            #  [ 12x]
+            # For point [3, 0], we need [False,  False,  val(1)]
+            # For point [2, 1], we need [val(1), val(2), val(3)]
+            # For point [1, 2], we need [val(3), val(4), val(5)]
+            # For point [0, 3], we need [val(5), False,  False]
+            # as the indices for the valid_res routine are (B, BR, R)
+            # Note that False is the absense of a condition
+            boundary_args = vals[-1][i:i+4]
+            outcome = x[pos[0]][pos[1]]
+            vals_for_level_I.append(valid_vals(outcome, *boundary_args))
             if debug:
-                print 'Level', I, ", iteration", i, "position", pos
+                print "vals for level", I, "iteration", i, " position", pos, \
+                    "outcome value", outcome, "boundary_args", boundary_args
+                for val in vals_for_level_I:
+                    print "going to print", val
+                    print_2D(val)
+                    print("")
+
+            quit()
+            i += 1
         
-    # vals = valid_vals(0)
-    # for val in vals:
-    #     print_2D(val)
-    #     print("")
     return
 
 def valid_vals(res, B=None,BR=None,R=None):
@@ -50,35 +88,37 @@ def valid_vals(res, B=None,BR=None,R=None):
     debug = False
     out = []
 
-    for bit in range(0,16):
-        # if debug:
-            # print('trying: ', format(bit, '04b'))
+    for bits in range(0,16):
+        if debug:
+            print('trying: ', format(bits, '04b'))
         if not BR is None:
-            if bit_is_set(bit, 0) != BR:
+            if bit_is_set(bits, 0) != BR:
                 continue
         if not B is None:
-            if bit_is_set(bit, 1) != B:
+            if bits_is_set(bits, 1) != B:
                 continue
         if not R is None:
-            if bit_is_set(bit, 3) != B:
+            if bit_is_set(bits, 3) != R:
                 continue
-        
+
         # If we reached here, we've satisfied all the side constraints
         # Now we need to look at whether the number matches requirements for res
-        n_ones = format(bit, '04b').count("1")
-        if res == 0:
+        bits_bools = [bool(int(bit)) for bit in format(bits, '04b')]
+        n_ones = bits_bools.count(True)
+        if res: # res = 1
             if n_ones != 1:
-                out.append(bit)
+                out.append(bits_bools)
                 if debug:
                     print ">>", res, "Added:"
-                    print_2D(bit)
-        else: # res == 1
+                    print_2D(bits_bools)
+        else: # res == 0
             if n_ones == 1:
-                out.append(bit)
+                out.append(bits_bools)
                 if debug:
                     print ">>", res, "Added:"
-                    print_2D(bit)
+                    print_2D(bits_bools)
 
+    print "going to return", out
     return out
 
 def bit_is_set(bit, idx):
@@ -88,7 +128,9 @@ def bit_is_set(bit, idx):
         return False
 
 def print_2D(bit):
-    bitStr = str(format(bit, '04b')).replace('0', ' ').replace('1', '*')
+    bitStr = str(bit).replace('False', ' ').replace('True', '*')
+    print 'bit', bit
+    print 'bitstring', bitStr
     print("  ["+bitStr[-2:]+"]")
     print("  ["+bitStr[1::-1]+"]")
 
