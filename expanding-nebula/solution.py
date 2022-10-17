@@ -43,6 +43,19 @@ class NodeList:
                 repr_str += ")"
         return repr_str
     
+    def matrix_print(self, H, W, el2pos, el_idx):
+        print_strs = np.empty((H+1, W+1), dtype='str')
+        print_strs[:] = " "
+        printVal = self.head
+
+        for idx in reversed(range(el_idx+1)):
+            pos = el2pos[idx,:]
+            print_strs[pos[0], pos[1]] = str(printVal.data).replace('False', '.').replace('True', '*')
+            printVal = printVal.prev
+
+        for idH in range(H+1):
+            print "  ["+"".join(print_strs[idH,:])+"]"
+    
     def add(self, data):
         prevHead = self.head
         self.head = Node(data)
@@ -81,6 +94,8 @@ def solution(x):
 
     # helper dict to convert position (2D) to element index (1D)
     pos2el = np.zeros((H+1, W+1), dtype=np.int8)
+    if debug:
+        el2pos = np.zeros(((H+1)*(W+1),2), dtype=np.int8) # 2nd index: (row, col)
 
     el_idx = -1 # will add 1 at beginning of loop
     for I in range(H+W+1):
@@ -100,7 +115,9 @@ def solution(x):
                 # update helper functions
                 pos2el[pos[0],pos[1]] = el_idx
                 if debug:
+                    el2pos[el_idx,:] = pos
                     print "pos2el:", pos2el
+                    # print "el2pos:", el2pos
 
                 # new level
                 vals.append([])
@@ -146,8 +163,8 @@ def solution(x):
 
                         for val_next in valid_vals(outcome, Node_D,Node_B,Node_R):
                             vals[el_idx].append(NodeList(val.head).add(val_next))
-                            # if debug:
-                            #     print "added", vals[el_idx][-1]
+                            if debug:
+                                print "added", vals[el_idx][-1]
 
                         # raw_input('paused inside node '+str(el_idx))
 
@@ -158,6 +175,7 @@ def solution(x):
                 print "node", el_idx, ": (", len(vals[-1]), " paths)"
                 for val in vals[-1]:
                     print val
+                    val.matrix_print(H, W, el2pos, el_idx)
                 # res = raw_input('paused at end of node '+str(el_idx))
 
     if debug:
@@ -190,7 +208,7 @@ def valid_vals(outcome, D,B,R):
     res = []
 
     # try 
-    n_ones = D.data + B.data + R.data
+    n_ones = int(D.data) + int(B.data) + int(R.data)
 
     if n_ones == 0:
         res.append(outcome) # 1 if outcome is 1 and vice versa
@@ -219,15 +237,15 @@ if __name__ == "__main__":
     # print(solution(x))
     # print('')
 
-    x = [[True, False], [False, False]]
-    print(x)
-    print(solution(x))
-    print('')
-
-    # x = [[True, False, True], [False, True, False], [True, False, True]]
+    # x = [[True, False], [False, False]]
     # print(x)
     # print(solution(x))
     # print('')
+
+    x = [[True, False, True], [False, True, False], [True, False, True]]
+    print(x)
+    print(solution(x))
+    print('')
 
     # x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
     # print(x)
