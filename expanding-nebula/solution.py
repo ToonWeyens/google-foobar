@@ -78,12 +78,11 @@ def solution(x):
 
     outcomes = np.array(x) # easier for indexing than list of lists
     vals = [] # will contain an entry for every level
-    vals.append([NodeList(Node(True)), NodeList(Node(False))])
 
     # helper dict to convert position (2D) to element index (1D)
     pos2el = np.zeros((H+1, W+1), dtype=np.int8)
 
-    el_idx = 0 # already set level 0 above, will ad 1 at beginning of loop
+    el_idx = -1 # will add 1 at beginning of loop
     for I in range(H+W+1):
         if debug:
             print ">> reached level", I
@@ -91,6 +90,7 @@ def solution(x):
         # iterate over non-boundary elements in this level
         for idx in range(I+1):
             pos = [H-idx, W-I+idx]
+
             if (pos[0] >= 0 and pos[0] <= H and pos[1] >= 0 and pos[1] <= W):
                 el_idx  += 1
 
@@ -106,7 +106,13 @@ def solution(x):
                 vals.append([])
                 
                 # boundary
-                if ( (pos[0] == H and pos[1]>= 0) or # bottom row
+                if I == 0 and idx == 0: # first iteration
+                    vals[el_idx].append(NodeList(Node(True)))
+                    vals[el_idx].append(NodeList(Node(False)))
+                    
+                    if debug:
+                        print "appended first point", pos
+                elif ( (pos[0] == H and pos[1]>= 0) or # bottom row
                     (pos[1] == W and pos[0]>= 0) ): # rightern column
 
                     for val in vals[el_idx-1]:
@@ -146,14 +152,15 @@ def solution(x):
                 continue # skip this one as it's outside the grid
 
             if debug:
-                print "node", el_idx, ":"
+                print "node", el_idx, ": (", len(vals[-1]), " paths)"
                 for val in vals[-1]:
                     print val
-                # res = raw_input('paused at end of node '+str(el_idx))
+                res = raw_input('paused at end of node '+str(el_idx))
 
     if debug:
         print "at final element", el_idx, "found", len(vals[-1]), "paths"
-    return
+
+    return len(vals[-1])
 
 def get_neighbor(val, el_idx, nb_idx):
     debug = False
