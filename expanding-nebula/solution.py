@@ -3,7 +3,7 @@ import numpy as np
 debug = True
 # debug = False
 if debug:
-    glob_node_idx = 1
+    glob_node_idx = 0
 
 class Node:
     def __init__(self, data):
@@ -83,7 +83,7 @@ def solution(x):
     # helper dict to convert position (2D) to element index (1D)
     pos2el = np.zeros((H+1, W+1), dtype=np.int8)
 
-    el_idx = -1 # will ad 1 at beginning of loop
+    el_idx = 0 # already set level 0 above, will ad 1 at beginning of loop
     for I in range(H+W+1):
         if debug:
             print ">> reached level", I
@@ -112,6 +112,9 @@ def solution(x):
                     for val in vals[el_idx-1]:
                         vals[el_idx].append(NodeList(val.head).add(True))
                         vals[el_idx].append(NodeList(val.head).add(False))
+                    
+                    if debug:
+                        print "appended boundary points at pos", pos
 
                 # internal
                 else:
@@ -129,21 +132,27 @@ def solution(x):
                         Node_D = get_neighbor(val, el_idx-1, ind_D)
                         Node_R = get_neighbor(val, el_idx-1, ind_R)
 
-                        print "for val", val, "neighbor - B: ( ", ind_B, ")", Node_B, "; D: ( ", ind_D, ")", Node_D, "; R: ( ", ind_R, ")", Node_R
-
+                        # if debug:
+                            # print "for outcome", outcome, "neighbor - B: ( ", ind_B, ")", Node_B, "; D: ( ", ind_D, ")", Node_D, "; R: ( ", ind_R, ")", Node_R
 
                         for val_next in valid_vals(outcome, Node_B,Node_D,Node_R):
                             vals[el_idx].append(NodeList(val.head).add(val_next))
-                            if debug:
-                                print "added", vals[el_idx][-1]
+                            # if debug:
+                            #     print "added", vals[el_idx][-1]
 
-                        raw_input('paused inside node '+str(el_idx))
+                        # raw_input('paused inside node '+str(el_idx))
 
             else:
                 continue # skip this one as it's outside the grid
 
-            raw_input('paused at end of node '+str(el_idx))
+            if debug:
+                print "node", el_idx, ":"
+                for val in vals[-1]:
+                    print val
+                # res = raw_input('paused at end of node '+str(el_idx))
 
+    if debug:
+        print "at final element", el_idx, "found", len(vals[-1]), "paths"
     return
 
 def get_neighbor(val, el_idx, nb_idx):
@@ -158,50 +167,56 @@ def get_neighbor(val, el_idx, nb_idx):
     return nbVal
 
 
-def valid_vals(res, B,D,R):
-    # valid values for result res, taking into account
+def valid_vals(outcome, B,D,R):
+    # valid values for resulting outcome, taking into account
     #   B: value below
     #   D: Value below right ("diagonal")
     #   R: Value right
-    # B, D and R are nodes, res is a boolean, and the output is a list of booleans
+    # B, D and R are nodes, outcome is a boolean, and the output is a list of booleans
     # containing the values TL from
     #   [TL TR]
     #   [BL BR]
-    # debug = False
-    out = []
+    debug = False
+    res = []
 
     for bits in range(0,16):
         # if debug:
             # print 'trying:', format(bits, '04b') 
 
         # Satisfy all the side constraints
-        if bit_is_set(bits, 0) != D.data:
+        # indexing: TR TL BL BR
+        if bit_is_set(bits, 3) != D.data:
             continue
-        if bit_is_set(bits, 1) != B.data:
+        if bit_is_set(bits, 2) != B.data:
             continue
-        if bit_is_set(bits, 3) != R.data:
+        if bit_is_set(bits, 0) != R.data:
             continue
 
-        # Look at whether the number matches requirements for res
+        # Look at whether the number matches requirements for outcome
+        #   - n_ones = 0 or 1 -> xor(outcome)
+        #   - n_ones > 1      -> 0 or 1
         bits_bools = [bool(int(bit)) for bit in format(bits, '04b')]
         n_ones = bits_bools.count(True)
-        if res: # res = 1
-            if n_ones != 1:
-                out.append(bits_bools[2])
-                if debug:
-                    print ">>", res, "Added:"
-                    print_2D(bits_bools)
-        else: # res == 0
-            if n_ones == 1:
-                out.append(bits_bools[2])
-                if debug:
-                    print ">>", res, "Added:"
-                    print_2D(bits_bools)
+        # if debug:
+            # print "n_ones", n_ones, "for outcome", outcome
+
+        if n_ones <= 1:
+            res.append(True^outcome) # 1 of outcome is 0 and vice versa
+        else:
+            if not outcome: # only outcome 0 can still be reached, with whatever val
+                res.append(False)
+                res.append(True)
+        if debug:
+            if n_ones <= 1 or (not outcome):
+                print ">> for ", outcome, ", added TL value:"
+                print_2D(bits_bools)
+            else:
+                print ">> no compatible TL values for", outcome
     
     if debug:
-        print "returning", len(out), "values"
+        print "returning", len(res), "values"
 
-    return out
+    return res
 
 def bit_is_set(bit, idx):
     # print "is bit set?", bit, "idx", idx, bool(bit & (1<<idx))
