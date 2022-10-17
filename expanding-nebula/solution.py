@@ -108,6 +108,7 @@ def solution(x):
 
             if (pos[0] >= 0 and pos[0] <= H and pos[1] >= 0 and pos[1] <= W):
                 el_idx  += 1
+                print str(el_idx)+"/"+str((H+1)*(W+1)-1)
 
                 if debug:
                     print "> within level", I, "at element", el_idx, "with position", pos
@@ -204,7 +205,7 @@ def valid_vals(outcome, D,B,R):
     # containing the values TL from
     #   [TL TR]
     #   [BL BR]
-    # debug = False
+    debug = False
     res = []
 
     # try 
@@ -242,12 +243,22 @@ if __name__ == "__main__":
     # print(solution(x))
     # print('')
 
-    x = [[True, False, True], [False, True, False], [True, False, True]]
-    print(x)
-    print(solution(x))
-    print('')
+    # x = [[True, False, True], [False, True, False], [True, False, True]]
+    # print(x)
+    # print(solution(x))
+    # print('')
 
     # x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
     # print(x)
     # print(solution(x))
     # print('')
+
+    # x = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
+    # print(x)
+    # print(solution(x))
+    # print('')
+
+    x = [[True, True], [False, True], [False, False]]
+    print(x)
+    print(solution(x))
+    print('')
