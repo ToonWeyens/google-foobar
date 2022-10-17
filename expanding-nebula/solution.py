@@ -129,19 +129,22 @@ def solution(x):
                     
                     # find B, D, R of current point
                     # If we subtract the current element index, this shows how far back we have to go
-                    ind_B  = pos2el[pos[0]+1,pos[1]]
+                    ind_B = pos2el[pos[0]+1,pos[1]]
                     ind_D = pos2el[pos[0]+1,pos[1]+1]
-                    ind_R  = pos2el[pos[0],  pos[1]+1]
+                    ind_R = pos2el[pos[0],  pos[1]+1]
                     
                     for val in vals[el_idx-1]: # previous values
                         Node_B = get_neighbor(val, el_idx-1, ind_B)
                         Node_D = get_neighbor(val, el_idx-1, ind_D)
                         Node_R = get_neighbor(val, el_idx-1, ind_R)
 
-                        # if debug:
-                            # print "for outcome", outcome, "neighbor - B: ( ", ind_B, ")", Node_B, "; D: ( ", ind_D, ")", Node_D, "; R: ( ", ind_R, ")", Node_R
+                        if debug:
+                            print "for outcome", outcome, "neighbor", \
+                                "- D: ("+str(ind_D)+")"+str(Node_D)+ \
+                                "; B: ("+str(ind_B)+")"+str(Node_B)+ \
+                                "; R: ("+str(ind_R)+")"+str(Node_R)
 
-                        for val_next in valid_vals(outcome, Node_B,Node_D,Node_R):
+                        for val_next in valid_vals(outcome, Node_D,Node_B,Node_R):
                             vals[el_idx].append(NodeList(val.head).add(val_next))
                             # if debug:
                             #     print "added", vals[el_idx][-1]
@@ -155,7 +158,7 @@ def solution(x):
                 print "node", el_idx, ": (", len(vals[-1]), " paths)"
                 for val in vals[-1]:
                     print val
-                res = raw_input('paused at end of node '+str(el_idx))
+                # res = raw_input('paused at end of node '+str(el_idx))
 
     if debug:
         print "at final element", el_idx, "found", len(vals[-1]), "paths"
@@ -174,71 +177,59 @@ def get_neighbor(val, el_idx, nb_idx):
     return nbVal
 
 
-def valid_vals(outcome, B,D,R):
+def valid_vals(outcome, D,B,R):
     # valid values for resulting outcome, taking into account
-    #   B: value below
     #   D: Value below right ("diagonal")
+    #   B: value below
     #   R: Value right
     # B, D and R are nodes, outcome is a boolean, and the output is a list of booleans
     # containing the values TL from
     #   [TL TR]
     #   [BL BR]
-    debug = False
+    # debug = False
     res = []
 
-    for bits in range(0,16):
-        # if debug:
-            # print 'trying:', format(bits, '04b') 
+    # try 
+    n_ones = D.data + B.data + R.data
 
-        # Satisfy all the side constraints
-        # indexing: TR TL BL BR
-        if bit_is_set(bits, 3) != D.data:
-            continue
-        if bit_is_set(bits, 2) != B.data:
-            continue
-        if bit_is_set(bits, 0) != R.data:
-            continue
-
-        # Look at whether the number matches requirements for outcome
-        #   - n_ones = 0 or 1 -> xor(outcome)
-        #   - n_ones > 1      -> 0 or 1
-        bits_bools = [bool(int(bit)) for bit in format(bits, '04b')]
-        n_ones = bits_bools.count(True)
-        # if debug:
-            # print "n_ones", n_ones, "for outcome", outcome
-
-        if n_ones <= 1:
-            res.append(True^outcome) # 1 of outcome is 0 and vice versa
-        else:
-            if not outcome: # only outcome 0 can still be reached, with whatever val
-                res.append(False)
-                res.append(True)
-        if debug:
-            if n_ones <= 1 or (not outcome):
-                print ">> for ", outcome, ", added TL value:"
-                print_2D(bits_bools)
-            else:
-                print ">> no compatible TL values for", outcome
-    
+    if n_ones == 0:
+        res.append(outcome) # 1 if outcome is 1 and vice versa
+    elif n_ones == 1:
+        res.append(True^outcome) # 1 if outcome is 0 and vice versa
+    else:
+        if not outcome: # only outcome 0 can still be reached, with whatever val
+            res.append(False)
+            res.append(True)
+        
     if debug:
-        print "returning", len(res), "values"
+        print "returning", len(res), "values for", outcome, ":"
+        for r in res:
+            print_2D([D.data, B.data, r, R.data])
 
     return res
 
-def bit_is_set(bit, idx):
-    # print "is bit set?", bit, "idx", idx, bool(bit & (1<<idx))
-    if bit & (1<<idx):
-        return True
-    else:
-        return False
-
-def print_2D(bits):
-    bitstring = [str(bit).replace('False', '.').replace('True', '*') for bit in bits]
-    print("  ["+bitstring[2]+bitstring[3]+"]")
-    print("  ["+bitstring[1]+bitstring[0]+"]")
+def print_2D(vals):
+    valstrings = [str(val).replace('False', '.').replace('True', '*') for val in vals]
+    print("  ["+valstrings[2]+valstrings[3]+"]")
+    print("  ["+valstrings[1]+valstrings[0]+"]")
 
 if __name__ == "__main__":
-    x = [[True, False, True], [False, True, False], [True, False, True]]
+    # x = [[True]]
+    # print(x)
+    # print(solution(x))
+    # print('')
+
+    x = [[True, False], [False, False]]
     print(x)
     print(solution(x))
     print('')
+
+    # x = [[True, False, True], [False, True, False], [True, False, True]]
+    # print(x)
+    # print(solution(x))
+    # print('')
+
+    # x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
+    # print(x)
+    # print(solution(x))
+    # print('')
