@@ -284,7 +284,7 @@ def valid_vals_boundary_below(outcome, R):
     if R.data and outcome:
         res.append(False)
     else:
-        res.append(False)
+        res.append(True)
         res.append(False)
 
     return res
@@ -310,15 +310,15 @@ if __name__ == "__main__":
     # print(solution(x))
     # print('')
 
-    x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
-    print(x)
-    print(solution(x))
-    print('')
-
-    # x = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
+    # x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
     # print(x)
     # print(solution(x))
     # print('')
+
+    x = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
+    print(x)
+    print(solution(x))
+    print('')
 
     # x = [[True, True], [False, True], [False, False]]
     # print(x)
