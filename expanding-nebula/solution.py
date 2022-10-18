@@ -1,7 +1,7 @@
 import numpy as np
 
-debug = True
-# debug = False
+# debug = True
+debug = False
 if debug:
     glob_node_idx = 0
 
@@ -43,14 +43,6 @@ class NodeList:
             else:
                 repr_str += ")"
         return repr_str
-    
-    def trim(self, idx_current, idx_to_remove):
-        # trim depth to exclude everything before, and including, idx
-        endNode = self.head
-        for idx in range(idx_current-idx_to_remove-1):
-            endNode = endNode.prev
-        endNode.prev = None
-
     
     def matrix_print(self, H, W, el2pos, el_idx):
         print_strs = np.empty((H+1, W+1), dtype='str')
@@ -102,7 +94,7 @@ def solution(x):
     vals = [] # will contain an entry for every level
 
     # helper dict to convert position (2D) to element index (1D)
-    pos2el = np.zeros((H+1, W+1), dtype=np.int8)
+    pos2el = np.full((H+1, W+1), -1, dtype=np.int8)
     if debug:
         el2pos = np.zeros(((H+1)*(W+1),2), dtype=np.int8) # 2nd index: (row, col)
 
@@ -133,7 +125,7 @@ def solution(x):
 
                 # new level
                 vals.append([])
-                
+                    
                 # double boundary:  first iteration
                 if I == 0 and idx == 0: # first iteration
                     vals[el_idx].append(NodeList(Node(True)))
@@ -141,24 +133,42 @@ def solution(x):
                     
                     if debug:
                         print "appended first point", pos
-                # boundary
-                elif ( (pos[0] == H and pos[1]>= 0) or # bottom row
-                    (pos[1] == W and pos[0]>= 0) ): # rightern column
-
-                    for val in vals[el_idx-1]:
-                        vals[el_idx].append(NodeList(val.head).add(True))
-                        vals[el_idx].append(NodeList(val.head).add(False))
+                # bottom row
+                elif (pos[0] == H and pos[1]>= 0): 
+                    # outcome of position above
+                    outcome = outcomes[pos[0]-1,pos[1]]
                     
-                    if debug:
-                        print "appended boundary points at pos", pos
+                    # find R of current point
+                    ind_R = pos2el[pos[0],  pos[1]+1]
 
-                # internal
+                    for val in vals[el_idx-1]: # previous values
+                        Node_R = get_neighbor(val, el_idx-1, ind_R)
+
+                        # calculate all next values
+                        for val_next in valid_vals_boundary_below(outcome, Node_R):
+                            vals[el_idx].append(NodeList(val.head).add(val_next))
+                # rightern column
+                elif (pos[1] == W and pos[0]>= 0):
+                    # outcome of position left
+                    outcome = outcomes[pos[0],pos[1]-1]
+                    
+                    # find B, D of current point
+                    ind_B = pos2el[pos[0]+1,pos[1]]
+                    ind_D = pos2el[pos[0]+1,pos[1]-1]
+
+                    for val in vals[el_idx-1]: # previous values
+                        Node_D = get_neighbor(val, el_idx-1, ind_D)
+                        Node_B = get_neighbor(val, el_idx-1, ind_R)
+
+                        # calculate all next values
+                        for val_next in valid_vals_boundary_right(outcome, Node_D,Node_B):
+                            vals[el_idx].append(NodeList(val.head).add(val_next))
+                # internal position
                 else:
-                    # current outcome value
+                    # outcome of current position
                     outcome = outcomes[pos[0],pos[1]]
-                    
+
                     # find B, D, R of current point
-                    # If we subtract the current element index, this shows how far back we have to go
                     ind_B = pos2el[pos[0]+1,pos[1]]
                     ind_D = pos2el[pos[0]+1,pos[1]+1]
                     ind_R = pos2el[pos[0],  pos[1]+1]
@@ -175,16 +185,6 @@ def solution(x):
                                 "; R: ("+str(ind_R)+")"+str(Node_R)
                             
                         # calculate all next values
-                        vals_next = valid_vals(outcome, Node_D,Node_B,Node_R)
-
-                        # trim and update multiplicity by taking into account number of ways to get to D
-                        # for val_next in vals_next:
-                        #     if debug:
-                        #         print "trimming from diagonal index onward", node_D
-                        #     val_next.trim(el_idx, ind_D)
-
-                        #     vals[el_idx].append(NodeList(val.head).add(val_next))
-
                         for val_next in valid_vals(outcome, Node_D,Node_B,Node_R):
                             vals[el_idx].append(NodeList(val.head).add(val_next))
                             if debug:
@@ -198,17 +198,20 @@ def solution(x):
                     print val
                     val.matrix_print(H, W, el2pos, el_idx)
 
-                res = raw_input('paused at end of node '+str(el_idx))
+                # res = raw_input('paused at end of node '+str(el_idx))
 
 
-    if debug:
+    if debug or True:
         print "at final element", el_idx, "found", len(vals[-1]), "paths"
+        for e in range(el_idx+1):
+            print e, ":", len(vals[e])
 
     return len(vals[-1])
 
 def get_neighbor(val, el_idx, nb_idx):
     debug = False
     nbVal = val.head
+    assert nb_idx >= 0, "index must be >= 0"
     while nb_idx < el_idx:
         nbVal = nbVal.prev
         nb_idx += 1
@@ -249,6 +252,43 @@ def valid_vals(outcome, D,B,R):
 
     return res
 
+def valid_vals_boundary_right(outcome, D,B):
+    # valid values for resulting outcome, taking into account
+    #   D: Value lower left 
+    #   B: value below 
+    debug = False
+    res = []
+
+    # try 
+    n_ones = int(D.data) + int(B.data)
+
+    if outcome:
+        if n_ones == 0:
+            res.append(False)
+            res.append(True)
+        elif n_ones == 1:
+            res.append(False)
+    else:
+        res.append(False)
+        res.append(True)
+
+    return res
+
+def valid_vals_boundary_below(outcome, R):
+    # valid values for resulting outcome, taking into account
+    #   R: value right
+    debug = False
+    res = []
+
+    # try 
+    if R.data and outcome:
+        res.append(False)
+    else:
+        res.append(False)
+        res.append(False)
+
+    return res
+
 def print_2D(vals):
     valstrings = [str(val).replace('False', '.').replace('True', '*') for val in vals]
     print("  ["+valstrings[2]+valstrings[3]+"]")
@@ -265,15 +305,15 @@ if __name__ == "__main__":
     # print(solution(x))
     # print('')
 
-    x = [[True, False, True], [False, True, False], [True, False, True]]
-    print(x)
-    print(solution(x))
-    print('')
-
-    # x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
+    # x = [[True, False, True], [False, True, False], [True, False, True]]
     # print(x)
     # print(solution(x))
     # print('')
+
+    x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
+    print(x)
+    print(solution(x))
+    print('')
 
     # x = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
     # print(x)
