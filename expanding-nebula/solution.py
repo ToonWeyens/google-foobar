@@ -25,6 +25,7 @@ class NodeList:
     def __init__(self, head=None):
         # Optionally pass a node
         self.head = head
+        self.mult = 1 # multiplicity
     
     def __repr__(self):
         printVal = self.head
@@ -42,6 +43,14 @@ class NodeList:
             else:
                 repr_str += ")"
         return repr_str
+    
+    def trim(self, idx_current, idx_to_remove):
+        # trim depth to exclude everything before, and including, idx
+        endNode = self.head
+        for idx in range(idx_current-idx_to_remove-1):
+            endNode = endNode.prev
+        endNode.prev = None
+
     
     def matrix_print(self, H, W, el2pos, el_idx):
         print_strs = np.empty((H+1, W+1), dtype='str')
@@ -106,7 +115,9 @@ def solution(x):
         for idx in range(I+1):
             pos = [H-idx, W-I+idx]
 
-            if (pos[0] >= 0 and pos[0] <= H and pos[1] >= 0 and pos[1] <= W):
+            if not (pos[0] >= 0 and pos[0] <= H and pos[1] >= 0 and pos[1] <= W):
+                continue # skip because outside the grid
+            else:
                 el_idx  += 1
                 print str(el_idx)+"/"+str((H+1)*(W+1)-1)
 
@@ -123,13 +134,14 @@ def solution(x):
                 # new level
                 vals.append([])
                 
-                # boundary
+                # double boundary:  first iteration
                 if I == 0 and idx == 0: # first iteration
                     vals[el_idx].append(NodeList(Node(True)))
                     vals[el_idx].append(NodeList(Node(False)))
                     
                     if debug:
                         print "appended first point", pos
+                # boundary
                 elif ( (pos[0] == H and pos[1]>= 0) or # bottom row
                     (pos[1] == W and pos[0]>= 0) ): # rightern column
 
@@ -161,6 +173,17 @@ def solution(x):
                                 "- D: ("+str(ind_D)+")"+str(Node_D)+ \
                                 "; B: ("+str(ind_B)+")"+str(Node_B)+ \
                                 "; R: ("+str(ind_R)+")"+str(Node_R)
+                            
+                        # calculate all next values
+                        vals_next = valid_vals(outcome, Node_D,Node_B,Node_R)
+
+                        # trim and update multiplicity by taking into account number of ways to get to D
+                        # for val_next in vals_next:
+                        #     if debug:
+                        #         print "trimming from diagonal index onward", node_D
+                        #     val_next.trim(el_idx, ind_D)
+
+                        #     vals[el_idx].append(NodeList(val.head).add(val_next))
 
                         for val_next in valid_vals(outcome, Node_D,Node_B,Node_R):
                             vals[el_idx].append(NodeList(val.head).add(val_next))
@@ -169,15 +192,14 @@ def solution(x):
 
                         # raw_input('paused inside node '+str(el_idx))
 
-            else:
-                continue # skip this one as it's outside the grid
-
             if debug:
                 print "node", el_idx, ": (", len(vals[-1]), " paths)"
                 for val in vals[-1]:
                     print val
                     val.matrix_print(H, W, el2pos, el_idx)
-                # res = raw_input('paused at end of node '+str(el_idx))
+
+                res = raw_input('paused at end of node '+str(el_idx))
+
 
     if debug:
         print "at final element", el_idx, "found", len(vals[-1]), "paths"
@@ -243,10 +265,10 @@ if __name__ == "__main__":
     # print(solution(x))
     # print('')
 
-    # x = [[True, False, True], [False, True, False], [True, False, True]]
-    # print(x)
-    # print(solution(x))
-    # print('')
+    x = [[True, False, True], [False, True, False], [True, False, True]]
+    print(x)
+    print(solution(x))
+    print('')
 
     # x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
     # print(x)
@@ -258,7 +280,7 @@ if __name__ == "__main__":
     # print(solution(x))
     # print('')
 
-    x = [[True, True], [False, True], [False, False]]
-    print(x)
-    print(solution(x))
-    print('')
+    # x = [[True, True], [False, True], [False, False]]
+    # print(x)
+    # print(solution(x))
+    # print('')
