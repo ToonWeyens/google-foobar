@@ -1,69 +1,7 @@
 import numpy as np
 
-# debug = True
-debug = False
-if debug:
-    glob_node_idx = 0
-
-class Node:
-    def __init__(self, data):
-        if debug:
-            global glob_node_idx
-        self.data = data
-        self.prev = None
-        if debug:
-            self.idx = glob_node_idx
-            glob_node_idx += 1
-    
-    def __repr__(self):
-        repr_str = "Node "+str(self.data).replace('False', '.').replace('True', '*')
-        if debug:
-            repr_str += " ["+str(self.idx)+"]"
-        return repr_str
-
-class NodeList:
-    def __init__(self, head=None):
-        # Optionally pass a node
-        self.head = head
-        self.mult = 1 # multiplicity
-    
-    def __repr__(self):
-        printVal = self.head
-        if printVal is None:
-            repr_str = "empty Node list"
-        else:
-            repr_str = "Node list ("
-        while printVal is not None:
-            repr_str += str(printVal.data).replace('False', '.').replace('True', '*')
-            if debug:
-                repr_str += "["+str(printVal.idx)+"]"
-            printVal = printVal.prev
-            if printVal is not None:
-                repr_str += "<-"
-            else:
-                repr_str += ")"
-        return repr_str
-    
-    def matrix_print(self, H, W, el2pos, el_idx):
-        print_strs = np.empty((H+1, W+1), dtype='str')
-        print_strs[:] = " "
-        printVal = self.head
-
-        for idx in reversed(range(el_idx+1)):
-            pos = el2pos[idx,:]
-            print_strs[pos[0], pos[1]] = str(printVal.data).replace('False', '.').replace('True', '*')
-            printVal = printVal.prev
-
-        for idH in range(H+1):
-            print "  ["+"".join(print_strs[idH,:])+"]"
-    
-    def add(self, data):
-        prevHead = self.head
-        self.head = Node(data)
-        self.head.prev = prevHead
-        return self
-
-
+debug = True
+# debug = False
 
 def solution(x):
     H = len(x)
@@ -71,228 +9,75 @@ def solution(x):
     if debug:
         print 'table of dimensions (', H, ",", W, ")"
 
-    # We will use a linked list to describe the different ways in which each next element
-    # can be different, going in the following direction:
-    #  [11 10 8]
-    #  [9  7  5]
-    #  [6  4  2]
-    #  [4  1  0]
-    # This will lead tohe concept of levels I, as such:
-    #  [543]
-    #  [432]
-    #  [321]
-    #  [210]
-    # This way only the previous level's multiple possibilities are required to calculate the next
-    # 
-    # The level indicator I goes in principle from 0 to H+W where H is the height of the table and W the width
-    # Note that this means we've added one row and one column, and level 2 contains the bottom right
-    # corner of the original (outcomes) table
-    # For each level we start lower left and and we iterate towards top right
-    # If the grid is not square, as in the example, we will remove the points that fall outside of it by skipping
-
     outcomes = np.array(x) # easier for indexing than list of lists
-    vals = [] # will contain an entry for every level
+    col = []
 
-    # helper dict to convert position (2D) to element index (1D)
-    pos2el = np.full((H+1, W+1), -1, dtype=np.int8)
-    if debug:
-        el2pos = np.zeros(((H+1)*(W+1),2), dtype=np.int8) # 2nd index: (row, col)
-
-    el_idx = -1 # will add 1 at beginning of loop
-    for I in range(H+W+1):
-        if debug:
-            print ">> reached level", I
-        
-        # iterate over non-boundary elements in this level
-        for idx in range(I+1):
-            pos = [H-idx, W-I+idx]
-
-            if not (pos[0] >= 0 and pos[0] <= H and pos[1] >= 0 and pos[1] <= W):
-                continue # skip because outside the grid
-            else:
-                el_idx  += 1
-                print str(el_idx)+"/"+str((H+1)*(W+1)-1)
-
-                if debug:
-                    print "> within level", I, "at element", el_idx, "with position", pos
-
-                # update helper functions
-                pos2el[pos[0],pos[1]] = el_idx
-                if debug:
-                    el2pos[el_idx,:] = pos
-                    print "pos2el:", pos2el
-                    # print "el2pos:", el2pos
-
-                # new level
-                vals.append([])
-                    
-                # double boundary:  first iteration
-                if I == 0 and idx == 0: # first iteration
-                    vals[el_idx].append(NodeList(Node(True)))
-                    vals[el_idx].append(NodeList(Node(False)))
-                    
-                    if debug:
-                        print "appended first point", pos
-                # bottom row
-                elif (pos[0] == H and pos[1]>= 0): 
-                    # outcome of position above
-                    outcome = outcomes[pos[0]-1,pos[1]]
-                    
-                    # find R of current point
-                    ind_R = pos2el[pos[0],  pos[1]+1]
-
-                    for val in vals[el_idx-1]: # previous values
-                        Node_R = get_neighbor(val, el_idx-1, ind_R)
-
-                        # calculate all next values
-                        for val_next in valid_vals_boundary_below(outcome, Node_R):
-                            vals[el_idx].append(NodeList(val.head).add(val_next))
-                # rightern column
-                elif (pos[1] == W and pos[0]>= 0):
-                    # outcome of position left
-                    outcome = outcomes[pos[0],pos[1]-1]
-                    
-                    # find B, D of current point
-                    ind_B = pos2el[pos[0]+1,pos[1]]
-                    ind_D = pos2el[pos[0]+1,pos[1]-1]
-
-                    for val in vals[el_idx-1]: # previous values
-                        Node_D = get_neighbor(val, el_idx-1, ind_D)
-                        Node_B = get_neighbor(val, el_idx-1, ind_R)
-
-                        # calculate all next values
-                        for val_next in valid_vals_boundary_right(outcome, Node_D,Node_B):
-                            vals[el_idx].append(NodeList(val.head).add(val_next))
-                # internal position
-                else:
-                    # outcome of current position
-                    outcome = outcomes[pos[0],pos[1]]
-
-                    # find B, D, R of current point
-                    ind_B = pos2el[pos[0]+1,pos[1]]
-                    ind_D = pos2el[pos[0]+1,pos[1]+1]
-                    ind_R = pos2el[pos[0],  pos[1]+1]
-                    
-                    for val in vals[el_idx-1]: # previous values
-                        Node_B = get_neighbor(val, el_idx-1, ind_B)
-                        Node_D = get_neighbor(val, el_idx-1, ind_D)
-                        Node_R = get_neighbor(val, el_idx-1, ind_R)
-
-                        if debug:
-                            print "for outcome", outcome, "neighbor", \
-                                "- D: ("+str(ind_D)+")"+str(Node_D)+ \
-                                "; B: ("+str(ind_B)+")"+str(Node_B)+ \
-                                "; R: ("+str(ind_R)+")"+str(Node_R)
-                            
-                        # calculate all next values
-                        for val_next in valid_vals(outcome, Node_D,Node_B,Node_R):
-                            vals[el_idx].append(NodeList(val.head).add(val_next))
-                            if debug:
-                                print "added", vals[el_idx][-1]
-
-                        # raw_input('paused inside node '+str(el_idx))
-
+    # Iterate over columns (as they are limited in size compared to the rows)
+    for idW in range(W):
+        col_new = dict() # dictionary of list of 2-tuples (idW, idW+1)
+        for idH in range(H):
             if debug:
-                print "node", el_idx, ": (", len(vals[-1]), " paths)"
-                for val in vals[-1]:
-                    print val
-                    val.matrix_print(H, W, el2pos, el_idx)
+                print "V: "+str(idW)+"/"+str(W-1)+" - H: "+str(idH)+"/"+str(H-1)
 
-                # res = raw_input('paused at end of node '+str(el_idx))
+            outcome = outcomes[idH, idW]
+            col_new[idH] = []
 
+            # extend the column by going down one element and calculating the possibilities to get outcome
+            if idH == 0:
+                for prec in precursors(outcome):
+                    col_new[idH].append(tuple((prec[0][0]+(prec[1][0]<<1), prec[0][1]+(prec[1][1]<<1))))
+                    if debug:
+                        print "added", col_new[idH][-1]
+            else:
+                for prec in precursors(outcome):
+                    # if debug:
+                        # print "going to try matrix", prec, ": Look at bit", idH
+                    for c in col_new[idH-1]:
+                        # trim to compatible precursors of element above
+                        # print "c", c
+                        # print bit_n(c[0],idH) == prec[0][0], "bit_n(c[0],idH+1)", bit_n(c[0],idH), "prec[0][0]", prec[0][0]
+                        # print bit_n(c[1],idH) == prec[0][1], "bit_n(c[1],idH+1)", bit_n(c[1],idH), "prec[0][1]", prec[0][1]
+                        if (bit_n(c[0],idH) == prec[0][0] and bit_n(c[1],idH) == prec[0][1]): # compatible with above
+                            # if debug:
+                                # print "compatible with column ", format(c[0], '09b'), format(c[1], '09b')
+                            col_new[idH].append(tuple((c[0] + (prec[0][1]<<idH+1), c[1] + (prec[1][1]<<idH+1))))
+            
+                    # if debug:
+                    #     val = map(int, '{:09b}'.format(c))
+                    #     print val
+            if debug:
+                for c in col_new[idH]:
+                    print c, format(c[0], '09b'), format(c[1], '09b')
+            
+            ri = raw_input('paused')
 
-    if debug or True:
-        print "at final element", el_idx, "found", len(vals[-1]), "paths"
-        for e in range(el_idx+1):
-            print e, ":", len(vals[e])
+def bit_n(val, n):
+    # returns bool, can be compared to 1 or 0
+    return val & 1<<n != 0
 
-    return len(vals[-1])
-
-def get_neighbor(val, el_idx, nb_idx):
-    debug = False
-    nbVal = val.head
-    assert nb_idx >= 0, "index must be >= 0"
-    while nb_idx < el_idx:
-        nbVal = nbVal.prev
-        nb_idx += 1
-        if debug:
-            print "getting neighbor", nbVal
-
-    return nbVal
-
-
-def valid_vals(outcome, D,B,R):
-    # valid values for resulting outcome, taking into account
-    #   D: Value below right ("diagonal")
-    #   B: value below
-    #   R: Value right
-    # B, D and R are nodes, outcome is a boolean, and the output is a list of booleans
-    # containing the values TL from
-    #   [TL TR]
-    #   [BL BR]
-    debug = False
-    res = []
-
-    # try 
-    n_ones = int(D.data) + int(B.data) + int(R.data)
-
-    if n_ones == 0:
-        res.append(outcome) # 1 if outcome is 1 and vice versa
-    elif n_ones == 1:
-        res.append(True^outcome) # 1 if outcome is 0 and vice versa
-    else:
-        if not outcome: # only outcome 0 can still be reached, with whatever val
-            res.append(False)
-            res.append(True)
-        
-    if debug:
-        print "returning", len(res), "values for", outcome, ":"
-        for r in res:
-            print_2D([D.data, B.data, r, R.data])
-
-    return res
-
-def valid_vals_boundary_right(outcome, D,B):
-    # valid values for resulting outcome, taking into account
-    #   D: Value lower left 
-    #   B: value below 
-    debug = False
-    res = []
-
-    # try 
-    n_ones = int(D.data) + int(B.data)
-
-    if outcome:
-        if n_ones == 0:
-            res.append(False)
-            res.append(True)
-        elif n_ones == 1:
-            res.append(False)
-    else:
-        res.append(False)
-        res.append(True)
-
-    return res
-
-def valid_vals_boundary_below(outcome, R):
-    # valid values for resulting outcome, taking into account
-    #   R: value right
-    debug = False
-    res = []
-
-    # try 
-    if R.data and outcome:
-        res.append(False)
-    else:
-        res.append(True)
-        res.append(False)
-
-    return res
-
-def print_2D(vals):
-    valstrings = [str(val).replace('False', '.').replace('True', '*') for val in vals]
-    print("  ["+valstrings[2]+valstrings[3]+"]")
-    print("  ["+valstrings[1]+valstrings[0]+"]")
+def precursors(outcome):
+    if outcome: # True
+        # [10]  [01]  [00]  [00]
+        # [00], [00], [10], [01]
+        return {((1,0),(0,0)),\
+            ((0,1),(0,0)),\
+            ((0,0),(1,0)),\
+            ((0,0),(0,1)),\
+            }
+    else: # False
+        # [00]  [11]  [01]  [00]  [10]  [11]  [01]  [10]  [11]  [11]
+        # [00], [00], [01], [11], [10], [01], [11], [11], [10], [11]
+        return {((0,0),(0,0)),\
+            ((1,1),(0,0)),\
+            ((0,1),(0,1)),\
+            ((0,0),(1,1)),\
+            ((1,0),(1,0)),\
+            ((1,1),(0,1)),\
+            ((0,1),(1,1)),\
+            ((1,0),(1,1)),\
+            ((1,1),(1,0)),\
+            ((1,1),(1,1)),\
+            }
 
 if __name__ == "__main__":
     # x = [[True]]
@@ -310,15 +95,15 @@ if __name__ == "__main__":
     # print(solution(x))
     # print('')
 
-    # x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
-    # print(x)
-    # print(solution(x))
-    # print('')
-
-    x = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
+    x = [[True, False, True, False, False, True, True, True], [True, False, True, False, False, False, True, False], [True, True, True, False, False, False, True, False], [True, False, True, False, False, False, True, False], [True, False, True, False, False, True, True, True]]
     print(x)
     print(solution(x))
     print('')
+
+    # x = [[True, True, False, True, False, True, False, True, True, False], [True, True, False, False, False, False, True, True, True, False], [True, True, False, False, False, False, False, False, False, True], [False, True, False, False, False, False, True, True, False, False]]
+    # print(x)
+    # print(solution(x))
+    # print('')
 
     # x = [[True, True], [False, True], [False, False]]
     # print(x)
